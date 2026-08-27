@@ -1,0 +1,12 @@
+modules = ["nodejs-20"]
+[nix]
+channel = "stable-25_05"
+
+[agent]
+expertMode = true
+
+[[ports]]
+localPort = 8081
+externalPort = 80
+
+run = "cd ai-beauty && npx expo start --web --port 8081"
