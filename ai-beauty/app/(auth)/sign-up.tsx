@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
@@ -8,17 +8,16 @@ import { Button } from "@/design-system/components/Button";
 import { AuthButtons } from "@/components/AuthButtons";
 import { useAppTheme } from "@/design-system/ThemeProvider";
 import { getAuthProvider, isBackendAuthConfigured } from "@/services/providers/auth";
-import { useAuthStore } from "@/state/authStore";
 import { useUserStore } from "@/state/userStore";
+import { activateSession } from "@/services/sessionLifecycle";
 
 export default function SignUpScreen() {
   const { theme } = useAppTheme();
   const { t } = useTranslation();
   const router = useRouter();
-  const setSession = useAuthStore((s) => s.setSession);
   const setGuest = useUserStore((s) => s.setGuest);
   const setName = useUserStore((s) => s.setName);
-  const setOnboardingCompleted = useUserStore((s) => s.setOnboardingCompleted);
+  const setOnboardingStarted = useUserStore((s) => s.setOnboardingStarted);
 
   const [name, setLocalName] = useState("");
   const [email, setEmail] = useState("");
@@ -31,11 +30,11 @@ export default function SignUpScreen() {
     setLoading(true);
     try {
       const result = await getAuthProvider().registerWithEmail(email.trim(), password, name.trim() || undefined);
-      setSession(result.user, result.scope);
+      await activateSession(result.user, result.scope);
       setGuest(false);
-      setOnboardingCompleted(true);
       if (name.trim()) setName(name.trim());
-      router.replace("/(tabs)/home");
+      setOnboardingStarted(true);
+      router.replace("/(onboarding)/language");
     } catch (e: any) {
       setError(e.message === "email_taken" ? t("auth.emailTaken") : t("errors.generic"));
     } finally {
@@ -45,15 +44,15 @@ export default function SignUpScreen() {
 
   const onSuccessSocial = () => {
     setGuest(false);
-    setOnboardingCompleted(true);
-    router.replace("/(tabs)/home");
+    if (useUserStore.getState().onboardingCompleted) router.replace("/(tabs)/home");
+    else { setOnboardingStarted(true); router.replace("/(onboarding)/language"); }
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <ScreenHeader title={t("auth.signUpTitle")} />
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <View style={styles.container}>
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
           {!isBackendAuthConfigured && (
             <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginBottom: 14 }}>
               {t("auth.localOnlyNotice")}
@@ -93,7 +92,7 @@ export default function SignUpScreen() {
             {t("auth.passwordHint")}
           </Text>
 
-          {error && <Text style={{ color: theme.colors.danger, marginBottom: 10 }}>{error}</Text>}
+          {error && <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={{ color: theme.colors.danger, marginBottom: 10 }}>{error}</Text>}
 
           <Button
             label={t("auth.signUp")}
@@ -105,14 +104,14 @@ export default function SignUpScreen() {
 
           <View style={{ height: 20 }} />
           <AuthButtons onSuccess={onSuccessSocial} onError={(m) => setError(m)} />
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20 },
+  container: { padding: 20, paddingBottom: 48, flexGrow: 1 },
   label: { fontSize: 12, fontWeight: "600", marginBottom: 6, marginTop: 12 },
   input: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15 },
 });

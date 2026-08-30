@@ -15,6 +15,10 @@ interface SettingsState {
   weatherAuto: boolean;
   manualWeatherCondition: string | null;
   notificationsEnabled: boolean;
+  inactivityReminderEnabled: boolean;
+  weeklyTrendNotificationsEnabled: boolean;
+  savedLookReminderEnabled: boolean;
+  photoAiConsentAccepted: boolean;
   defaultCameraFilterId: string;
   defaultCameraIntensity: number;
   setThemeId: (id: ThemeId) => void;
@@ -25,22 +29,35 @@ interface SettingsState {
   setWeatherAuto: (v: boolean) => void;
   setManualWeatherCondition: (c: string | null) => void;
   setNotificationsEnabled: (v: boolean) => void;
+  setInactivityReminderEnabled: (v: boolean) => void;
+  setWeeklyTrendNotificationsEnabled: (v: boolean) => void;
+  setSavedLookReminderEnabled: (v: boolean) => void;
+  setPhotoAiConsentAccepted: (v: boolean) => void;
   setDefaultCameraStyle: (filterId: string, intensity: number) => void;
+  reset: () => void;
 }
+
+const initialSettings = {
+  themeId: DEFAULT_THEME,
+  language: "en" as LanguageCode,
+  regionCountryCode: "US",
+  tone: "friendly" as ToneId,
+  addressId: "none",
+  weatherAuto: false,
+  manualWeatherCondition: null as string | null,
+  notificationsEnabled: false,
+  inactivityReminderEnabled: false,
+  weeklyTrendNotificationsEnabled: false,
+  savedLookReminderEnabled: false,
+  photoAiConsentAccepted: false,
+  defaultCameraFilterId: "clean",
+  defaultCameraIntensity: 40,
+};
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      themeId: DEFAULT_THEME,
-      language: "en",
-      regionCountryCode: "US",
-      tone: "friendly",
-      addressId: "none",
-      weatherAuto: false,
-      manualWeatherCondition: null,
-      notificationsEnabled: false,
-      defaultCameraFilterId: "clean",
-      defaultCameraIntensity: 40,
+      ...initialSettings,
       setThemeId: (id) => set({ themeId: id }),
       setLanguage: (l) => set({ language: l }),
       setRegion: (r) => set({ regionCountryCode: r }),
@@ -49,8 +66,13 @@ export const useSettingsStore = create<SettingsState>()(
       setWeatherAuto: (v) => set({ weatherAuto: v }),
       setManualWeatherCondition: (c) => set({ manualWeatherCondition: c }),
       setNotificationsEnabled: (v) => set({ notificationsEnabled: v }),
+      setInactivityReminderEnabled: (v) => set({ inactivityReminderEnabled: v }),
+      setWeeklyTrendNotificationsEnabled: (v) => set({ weeklyTrendNotificationsEnabled: v }),
+      setSavedLookReminderEnabled: (v) => set({ savedLookReminderEnabled: v }),
+      setPhotoAiConsentAccepted: (v) => set({ photoAiConsentAccepted: v }),
       setDefaultCameraStyle: (filterId, intensity) =>
         set({ defaultCameraFilterId: filterId, defaultCameraIntensity: intensity }),
+      reset: () => set({ ...initialSettings }),
     }),
     {
       name: "aibeauty.settings.v1",

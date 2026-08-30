@@ -34,4 +34,12 @@ export class DemoSubscriptionProvider implements SubscriptionProvider {
     const raw = await AsyncStorage.getItem(ENTITLEMENT_KEY);
     return raw === "plus" ? "plus" : "free";
   }
+
+  async identifyUser(_userId: string): Promise<void> {}
+
+  async clearUserIdentity(): Promise<void> {}
+
+  async subscribeEntitlementChanges(_listener: (status: EntitlementStatus) => void): Promise<() => void> {
+    return () => {};
+  }
 }

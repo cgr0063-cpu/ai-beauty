@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Linking, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
@@ -11,12 +11,11 @@ import { getSubscriptionProvider, isRealBillingConfigured } from "@/services/pro
 import { SubscriptionPlan } from "@/services/providers/subscription/SubscriptionProvider";
 import { useEntitlementStore } from "@/state/entitlementStore";
 
-const PLUS_PERKS = [
-  "Unlimited saved looks",
-  "Unlimited Fit Checks per day",
-  "Priority AI generation",
-  "Early access to new style modules",
-];
+const PLUS_PERK_KEYS = [
+  "subscription.perks.saved",
+  "subscription.perks.runway",
+  "subscription.perks.storeMode",
+] as const;
 
 export default function PaywallScreen() {
   const { theme } = useAppTheme();
@@ -31,27 +30,44 @@ export default function PaywallScreen() {
   const [purchasing, setPurchasing] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  useEffect(() => {
-    getSubscriptionProvider()
-      .getOfferings()
-      .then((p) => {
-        setPlans(p);
-        setSelected(p[0]?.id ?? null);
-      })
-      .finally(() => setLoadingPlans(false));
-  }, []);
+  const loadPlans = async () => {
+    setError(null);
+    setLoadingPlans(true);
+    try {
+      const p = await getSubscriptionProvider().getOfferings();
+      setPlans(p);
+      setSelected(p[0]?.id ?? null);
+      if (p.length === 0) setError(t("subscription.noPlans"));
+    } catch {
+      setPlans([]);
+      setSelected(null);
+      setError(t("subscription.loadError"));
+    } finally { setLoadingPlans(false); }
+  };
+
+  useEffect(() => { loadPlans(); }, []);
 
   const onPurchase = async () => {
+    if (status === "plus") {
+      const url = Platform.OS === "ios"
+        ? "https://apps.apple.com/account/subscriptions"
+        : "https://play.google.com/store/account/subscriptions";
+      await Linking.openURL(url);
+      return;
+    }
     if (!selected) return;
     setError(null);
+    setNotice(null);
     setPurchasing(true);
     try {
       const newStatus = await getSubscriptionProvider().purchase(selected);
       setStatus(newStatus);
       if (newStatus === "plus") router.back();
-    } catch {
-      setError(t("errors.generic"));
+    } catch (e: any) {
+      const cancelled = e?.userCancelled === true || String(e?.code ?? "").toLowerCase().includes("cancel");
+      if (!cancelled) setError(t("subscription.purchaseError"));
     } finally {
       setPurchasing(false);
     }
@@ -59,12 +75,14 @@ export default function PaywallScreen() {
 
   const onRestore = async () => {
     setError(null);
+    setNotice(null);
     setRestoring(true);
     try {
       const newStatus = await getSubscriptionProvider().restorePurchases();
       setStatus(newStatus);
+      setNotice(newStatus === "plus" ? t("subscription.restoreSuccess") : t("subscription.restoreNone"));
     } catch {
-      setError(t("errors.generic"));
+      setError(t("subscription.restoreError"));
     } finally {
       setRestoring(false);
     }
@@ -90,16 +108,16 @@ export default function PaywallScreen() {
         )}
 
         <Card style={{ marginBottom: 16 }}>
-          {PLUS_PERKS.map((perk) => (
-            <View key={perk} style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+          {PLUS_PERK_KEYS.map((perkKey) => (
+            <View key={perkKey} style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
               <Check size={16} color={theme.colors.success} />
-              <Text style={{ color: theme.colors.textPrimary, marginLeft: 8, fontSize: 14 }}>{perk}</Text>
+              <Text style={{ color: theme.colors.textPrimary, marginLeft: 8, fontSize: 14 }}>{t(perkKey)}</Text>
             </View>
           ))}
         </Card>
 
         {loadingPlans ? (
-          <ActivityIndicator color={theme.colors.accent} />
+          <View accessibilityRole="progressbar" accessibilityLabel={t("common.loading")}><ActivityIndicator color={theme.colors.accent} /></View>
         ) : (
           plans.map((plan) => {
             const isSelected = selected === plan.id;
@@ -127,7 +145,18 @@ export default function PaywallScreen() {
           })
         )}
 
-        {error && <Text style={{ color: theme.colors.danger, marginTop: 8 }}>{error}</Text>}
+        {notice && (
+          <Card style={{ marginTop: 8 }}>
+            <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={{ color: theme.colors.textPrimary }}>{notice}</Text>
+          </Card>
+        )}
+
+        {error && (
+          <Card style={{ marginTop: 8 }}>
+            <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={{ color: theme.colors.danger, marginBottom: 10 }}>{error}</Text>
+            {plans.length === 0 && <Button label={t("common.retry")} variant="secondary" onPress={loadPlans} fullWidth />}
+          </Card>
+        )}
 
         <View style={{ marginTop: 16 }}>
           <Button
@@ -136,7 +165,7 @@ export default function PaywallScreen() {
             fullWidth
             size="lg"
             loading={purchasing}
-            disabled={!selected}
+            disabled={status !== "plus" && !selected}
           />
           <View style={{ height: 10 }} />
           <Button

@@ -32,7 +32,7 @@ function pick<T>(arr: T[], seed: number): T {
 }
 
 function seedFromInput(input: LookRequestInput): number {
-  const s = `${input.moodId}|${input.planId}|${input.styleId}|${input.weatherCondition}|${new Date().toDateString()}`;
+  const s = `${input.moodId}|${input.planId}|${input.styleId}|${input.weatherCondition}|${new Date().toDateString()}|${input.variationSeed}|${input.favoriteColors.join(",")}|${input.savedPreferenceSignals.likedTitles.join(",")}`;
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
   return h;
@@ -101,14 +101,22 @@ export function buildTodaysLook(input: LookRequestInput): GeneratedLook {
   const moodLabel = mood ? tr(`moodLabels.${mood.id}`, { defaultValue: mood.label }) : null;
 
   const sportNote = sportOutfitNote(input.planId, input.gymSubOptionId);
-  const outfitNote = sportNote ?? weatherAdjustedOutfitNote(input.weatherCondition, safetyPriority);
+  const baseOutfitNote = sportNote ?? weatherAdjustedOutfitNote(input.weatherCondition, safetyPriority);
+  const outfitNote = input.coveragePreference === "no_preference" ? baseOutfitNote : `${baseOutfitNote} ${tr(`lookEngine.coverage.${input.coveragePreference}`)}`;
 
   let intensityKey = "medium";
-  const bias = mood?.intensityBias ?? 0;
-  if (bias <= -2) intensityKey = "veryLight";
-  else if (bias === -1) intensityKey = "light";
-  else if (bias === 1) intensityKey = "defined";
-  else if (bias >= 2) intensityKey = "glam";
+  const explicitIntensity: Record<NonNullable<LookRequestInput["beautyIntensityPreference"]>, string> = {
+    very_light: "veryLight", light: "light", medium: "medium", defined: "defined", glam: "glam",
+  };
+  if (input.beautyIntensityPreference) {
+    intensityKey = explicitIntensity[input.beautyIntensityPreference];
+  } else {
+    const bias = mood?.intensityBias ?? 0;
+    if (bias <= -2) intensityKey = "veryLight";
+    else if (bias === -1) intensityKey = "light";
+    else if (bias === 1) intensityKey = "defined";
+    else if (bias >= 2) intensityKey = "glam";
+  }
 
   // Formality from plan tempers mood-driven boldness — practicality outranks mood.
   const formality = plan?.formality ?? 1;
@@ -124,6 +132,7 @@ export function buildTodaysLook(input: LookRequestInput): GeneratedLook {
   const zodiacLabel = zodiac ? tr(`zodiacLabels.${zodiac.id}`, { defaultValue: zodiac.label }) : null;
   const zodiacKeyword = zodiac ? tr(`zodiacKeywords.${zodiac.id}`, { defaultValue: zodiac.keyword }) : null;
   const tarotMessage = tarot ? tr(`tarotMessages.${tarot.id}`, { defaultValue: tarot.messageSeed }) : null;
+  const companionZodiac = input.companionZodiacSignId ? ZODIAC_SIGNS.find((z) => z.id === input.companionZodiacSignId) : null;
 
   const sections: LookSection[] = [];
   const wantsModule = (m: string) => input.interestedModules.length === 0 || input.interestedModules.includes(m);
@@ -188,11 +197,33 @@ export function buildTodaysLook(input: LookRequestInput): GeneratedLook {
     sections.push({ key: "outfit", title: "Outfit", content: outfitNote });
   }
 
+  if (wantsModule("specialOccasions")) {
+    sections.push({
+      key: "specialOccasion",
+      title: "Special occasion",
+      content: planLabel
+        ? tr("lookEngine.specialOccasion.withPlan", { plan: planLabel.toLowerCase(), style: styleLabel })
+        : tr("lookEngine.specialOccasion.default", { style: styleLabel }),
+    });
+  }
+  if (wantsModule("shopping")) {
+    sections.push({
+      key: "shopping",
+      title: "Shopping",
+      content: tr("lookEngine.shopping", { style: styleLabel }),
+    });
+  }
+
   const whyParts: string[] = [];
   if (planLabel) whyParts.push(tr("lookEngine.partPlan", { plan: planLabel.toLowerCase() }));
   if (input.weatherCondition) whyParts.push(tr("lookEngine.partWeather"));
   if (styleLabel) whyParts.push(tr("lookEngine.partStyle", { style: styleLabel }));
   if (moodLabel) whyParts.push(tr("lookEngine.partMood", { mood: moodLabel.toLowerCase() }));
+
+  if (input.closetSummary.length) whyParts.push(tr("lookEngine.partCloset", { count: input.closetSummary.length }));
+  if (input.weeklyTrend) whyParts.push(tr(input.weeklyTrend.stale ? "lookEngine.partTrendStale" : "lookEngine.partTrend", { date: input.weeklyTrend.fetchedAt.slice(0, 10) }));
+  if (input.coveragePreference !== "no_preference") whyParts.push(tr(`lookEngine.coverageWhy.${input.coveragePreference}`));
+  if (input.socialContext) whyParts.push(tr("lookEngine.partSocial", { social: tr(`socialContext.${input.socialContext}`), name: input.companionName ?? "" }));
 
   const why =
     tr("lookEngine.whyIntro", { parts: whyParts.join(", ") || tr("lookEngine.whyNoParts") }) +
@@ -209,7 +240,7 @@ export function buildTodaysLook(input: LookRequestInput): GeneratedLook {
     sections,
     whyThisLook: why,
     todaysEnergy: energy,
-    colorPaletteHex: [...style.colorAccents, ...(zodiac ? [zodiac.accentColor] : [])],
+    colorPaletteHex: [...style.colorAccents, ...(zodiac ? [zodiac.accentColor] : []), ...(companionZodiac && (input.socialContext === "date" || input.socialContext === "partner") ? [companionZodiac.accentColor] : [])].filter((v, i, a) => a.indexOf(v) === i).slice(0, 6),
     source: "demo",
   };
 }
@@ -229,6 +260,16 @@ export function regenerateWithDirection(
     adjusted.planId = "office_work";
   } else if (direction === "dateNight") {
     adjusted.planId = "date_night";
+  } else if (direction === "another") {
+    const candidates = ["clean_girl", "casual_chic", "minimal", "old_money", "streetwear", "romantic", "edgy", "sporty"];
+    const previousTitle = adjusted.previousLookSummary?.title?.toLowerCase() ?? "";
+    const distinct = candidates.filter((id) => {
+      if (id === adjusted.styleId) return false;
+      const def = getStyleById(id);
+      const label = def ? tr(`styleLabels.${id}`, { defaultValue: def.label }).toLowerCase() : id;
+      return !previousTitle || !previousTitle.includes(label);
+    });
+    adjusted.styleId = pick(distinct.length ? distinct : candidates, seedFromInput(adjusted) + 19);
   }
   const base = buildTodaysLook(adjusted);
   return { ...base, id: `look_${Date.now()}_${direction}` };

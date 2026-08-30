@@ -7,6 +7,6 @@ export default function Index() {
   const onboardingStarted = useUserStore((s) => s.onboardingStarted);
 
   if (onboardingCompleted) return <Redirect href="/(tabs)/home" />;
-  if (onboardingStarted) return <Redirect href="/(onboarding)/modules" />;
+  if (onboardingStarted) return <Redirect href="/(onboarding)/language" />;
   return <Redirect href="/(onboarding)/welcome" />;
 }

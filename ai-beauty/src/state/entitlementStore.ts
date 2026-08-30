@@ -6,6 +6,7 @@ import { EntitlementStatus } from "@/services/providers/subscription/Subscriptio
 interface EntitlementState {
   status: EntitlementStatus;
   setStatus: (s: EntitlementStatus) => void;
+  reset: () => void;
 }
 
 export const useEntitlementStore = create<EntitlementState>()(
@@ -13,6 +14,7 @@ export const useEntitlementStore = create<EntitlementState>()(
     (set) => ({
       status: "free",
       setStatus: (s) => set({ status: s }),
+      reset: () => set({ status: "free" }),
     }),
     { name: "aibeauty.entitlementCache.v1", storage: createAsyncStorageAdapter() }
   )

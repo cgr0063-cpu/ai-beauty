@@ -41,6 +41,7 @@ export default function TabsLayout() {
         name="profile"
         options={{ title: t("nav.profile"), tabBarIcon: ({ color, size }) => <User color={color} size={size} /> }}
       />
+      <Tabs.Screen name="saved" options={{ href: null }} />
     </Tabs>
   );
 }

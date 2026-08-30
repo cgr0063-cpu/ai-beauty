@@ -9,12 +9,14 @@ import { Button } from "@/design-system/components/Button";
 import { ScreenHeader } from "@/design-system/components/Primitives";
 import { useAppTheme } from "@/design-system/ThemeProvider";
 import { useUserStore } from "@/state/userStore";
+import { useMediaFlowStore } from "@/state/mediaFlowStore";
 
 export default function FinishScreen() {
   const { theme } = useAppTheme();
   const { t } = useTranslation();
   const router = useRouter();
   const setOnboardingCompleted = useUserStore((s) => s.setOnboardingCompleted);
+  const requestSelfieCapture = useMediaFlowStore((s) => s.requestSelfieCapture);
 
   const finishTo = (path: string) => {
     setOnboardingCompleted(true);
@@ -37,7 +39,7 @@ export default function FinishScreen() {
         <View>
           <Button
             label={t("onboarding.startWithSelfie")}
-            onPress={() => finishTo("/(tabs)/home?startSelfie=1")}
+            onPress={() => { requestSelfieCapture(); finishTo("/(tabs)/home"); }}
             fullWidth
             size="lg"
           />

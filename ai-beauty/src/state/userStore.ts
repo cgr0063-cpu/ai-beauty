@@ -3,6 +3,8 @@ import { persist } from "zustand/middleware";
 import { createAsyncStorageAdapter } from "@/services/storage/persist";
 import { ModuleId } from "@/data/context";
 
+export type CoveragePreference = "no_preference" | "more_coverage" | "balanced" | "more_open";
+
 export interface UserProfile {
   name: string | null;
   age: number | null;
@@ -12,6 +14,7 @@ export interface UserProfile {
   favoriteColors: string[];
   dislikedColors: string[];
   beautyIntensityPreference: "very_light" | "light" | "medium" | "defined" | "glam" | null;
+  coveragePreference: CoveragePreference;
   zodiacSignId: string | null;
   selfieUri: string | null;
   fullBodyPhotoUri: string | null;
@@ -29,6 +32,7 @@ interface UserState extends UserProfile {
   setModules: (m: ModuleId[]) => void;
   toggleFavoriteStyle: (id: string) => void;
   setBeautyIntensityPreference: (v: UserProfile["beautyIntensityPreference"]) => void;
+  setCoveragePreference: (v: CoveragePreference) => void;
   setZodiacSignId: (id: string | null) => void;
   setSelfieUri: (uri: string | null) => void;
   setFullBodyPhotoUri: (uri: string | null) => void;
@@ -46,6 +50,7 @@ const initialProfile: UserProfile = {
   favoriteColors: [],
   dislikedColors: [],
   beautyIntensityPreference: null,
+  coveragePreference: "no_preference",
   zodiacSignId: null,
   selfieUri: null,
   fullBodyPhotoUri: null,
@@ -78,6 +83,7 @@ export const useUserStore = create<UserState>()(
         });
       },
       setBeautyIntensityPreference: (v) => set({ beautyIntensityPreference: v }),
+      setCoveragePreference: (v) => set({ coveragePreference: v }),
       setZodiacSignId: (id) => set({ zodiacSignId: id }),
       setSelfieUri: (uri) => set({ selfieUri: uri }),
       setFullBodyPhotoUri: (uri) => set({ fullBodyPhotoUri: uri }),

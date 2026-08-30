@@ -3,6 +3,8 @@ import { persist } from "zustand/middleware";
 import { createAsyncStorageAdapter } from "@/services/storage/persist";
 import { WeatherCondition } from "@/data/context";
 
+export type SocialContext = "solo" | "friends" | "date" | "partner";
+
 export interface TodayContext {
   dateKey: string | null; // yyyy-mm-dd this context belongs to
   moodId: string | null;
@@ -13,6 +15,9 @@ export interface TodayContext {
   temperatureC: number | null;
   zodiacApplied: boolean;
   tarotCardId: string | null;
+  socialContext: SocialContext | null;
+  companionName: string | null;
+  companionZodiacSignId: string | null;
 }
 
 interface TodayContextState extends TodayContext {
@@ -23,6 +28,9 @@ interface TodayContextState extends TodayContext {
   setWeather: (condition: WeatherCondition | null, temperatureC?: number | null) => void;
   setZodiacApplied: (v: boolean) => void;
   setTarotCard: (id: string | null) => void;
+  setSocialContext: (v: SocialContext | null) => void;
+  setCompanionName: (v: string | null) => void;
+  setCompanionZodiacSignId: (v: string | null) => void;
   startNewDay: (dateKey: string) => void;
   reset: () => void;
 }
@@ -37,6 +45,9 @@ const empty: TodayContext = {
   temperatureC: null,
   zodiacApplied: false,
   tarotCardId: null,
+  socialContext: null,
+  companionName: null,
+  companionZodiacSignId: null,
 };
 
 export const useTodayContextStore = create<TodayContextState>()(
@@ -50,6 +61,9 @@ export const useTodayContextStore = create<TodayContextState>()(
       setWeather: (condition, temperatureC = null) => set({ weatherCondition: condition, temperatureC }),
       setZodiacApplied: (v) => set({ zodiacApplied: v }),
       setTarotCard: (id) => set({ tarotCardId: id }),
+      setSocialContext: (v) => set({ socialContext: v, ...(v === "solo" || v === "friends" || v === null ? { companionName: null, companionZodiacSignId: null } : {}) }),
+      setCompanionName: (v) => set({ companionName: v?.trim().slice(0, 60) || null }),
+      setCompanionZodiacSignId: (v) => set({ companionZodiacSignId: v }),
       // Editing an earlier choice never wipes the rest — only startNewDay resets everything.
       startNewDay: (dateKey) => set({ ...empty, dateKey }),
       reset: () => set({ ...empty }),

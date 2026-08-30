@@ -18,13 +18,13 @@ export default function WelcomeScreen() {
 
   const begin = () => {
     setOnboardingStarted(true);
-    router.push("/(onboarding)/tone");
+    router.push("/(onboarding)/language");
   };
 
   const continueAsGuest = () => {
     setGuest(true);
     setOnboardingStarted(true);
-    router.push("/(onboarding)/tone");
+    router.push("/(onboarding)/language");
   };
 
   return (

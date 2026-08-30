@@ -14,7 +14,8 @@
     "regenerate": "Another look",
     "edit": "Edit",
     "surpriseMe": "Surprise me",
-    "notNow": "Not now"
+    "notNow": "Not now",
+    "delete": "Delete"
   },
   "nav": {
     "home": "Home",
@@ -51,7 +52,13 @@
     "finishSubtitle": "We'll learn your taste over time — nothing here is final.",
     "startWithSelfie": "Start with a selfie",
     "createMyLook": "Create my look",
-    "skipPhoto": "Skip for now"
+    "skipPhoto": "Skip for now",
+    "languageQuestion": "Choose your language",
+    "basicsQuestion": "A little about you",
+    "basicsSubtitle": "Optional. This helps tailor recommendations without guessing.",
+    "agePlaceholder": "Age (13+)",
+    "interestsSubtitle": "Pick a few styles you actually enjoy. You can change these later.",
+    "coverageQuestion": "Any coverage preference?"
   },
   "modules": {
     "outfits": "Outfits",
@@ -132,7 +139,9 @@
       "fragrance": "Fragrance",
       "outfit": "Outfit",
       "why": "Why this look",
-      "energy": "Today's energy"
+      "energy": "Today's energy",
+      "specialOccasion": "Special occasion",
+      "shopping": "Shopping"
     }
   },
   "zodiac": {
@@ -150,6 +159,7 @@
     "uploadCta": "Add a photo",
     "retake": "Retake",
     "analyzing": "Analyzing your fit...",
+    "analysisError": "We couldn’t analyze this photo right now. Try again, or retake the photo.",
     "outcomeKeep": "Keep",
     "outcomeAdjust": "Adjust",
     "outcomeSwap": "Swap",
@@ -162,14 +172,29 @@
     "shopOnlyIfNeeded": "Shop only if needed",
     "lowConfidence": "I can't assess this clearly from this photo. Try one front-facing, well-lit full-body shot.",
     "uploadFromLibrary": "Choose from library",
-    "enhanceHint": "Camera photos open in the beauty enhancer first — adjust or skip before analyzing.",
+    "enhanceHint": "Fit Check analyzes the original full-body frame — no beauty filter or crop is applied before analysis.",
     "showItOnMeTitle": "Show it on me",
-    "showItOnMeDescription": "Photo-preview try-on isn't configured in this build yet — the provider hook is ready in services/providers/ai for whenever an image-generation vendor is wired up."
+    "showItOnMeDescription": "Photo-preview try-on isn't configured in this build yet — the provider hook is ready in services/providers/ai for whenever an image-generation vendor is wired up.",
+    "detectedPieces": "Visible pieces",
+    "detectedPiecesHint": "Only clearly visible pieces are listed. Review and edit metadata in My closet after adding.",
+    "addToCloset": "Add to My closet",
+    "addedToCloset": "Added to My closet",
+    "confidence": {
+      "low": "low confidence",
+      "medium": "medium confidence",
+      "high": "high confidence"
+    }
   },
   "tailor": {
     "title": "Tailor mode",
     "showToTailor": "Show to tailor",
-    "instructions": "Bring this screen to your tailor — it summarizes the exact adjustment."
+    "instructions": "Bring this screen to your tailor — it summarizes the qualitative adjustment to check on you.",
+    "measureOnPerson": "Exact measurements should be taken by the tailor while the garment is on you.",
+    "copy": "Copy tailor note",
+    "share": "Share tailor note",
+    "missingTitle": "No tailor advice available",
+    "missingBody": "This screen only opens from an ADJUST Fit Check with valid tailor advice. Run Fit Check again.",
+    "backToFitCheck": "Back to Fit Check"
   },
   "camera": {
     "original": "Original",
@@ -194,13 +219,81 @@
   "closet": {
     "title": "My closet",
     "empty": "Your closet is empty — add a few pieces to unlock closet-based recommendations.",
-    "addItem": "Add item"
+    "addItem": "Add item",
+    "analysisFailed": "I could not identify this item clearly. Try a brighter photo with one item in frame.",
+    "camera": "Take photo",
+    "library": "Choose from library",
+    "deleteTitle": "Remove item?",
+    "deleteBody": "This removes the item and its stored photo from this device.",
+    "delete": "Remove",
+    "aiMetadataHint": "AI suggests the first metadata. You can edit it afterward.",
+    "metadataTruthNote": "AI labels are a starting point. Edit category, color, brand or tags whenever they are wrong.",
+    "edit": "Edit item",
+    "editTitle": "Edit closet item",
+    "itemName": "Item name",
+    "brand": "Brand",
+    "brandOptional": "Brand (optional)",
+    "color": "Color",
+    "categoryLabel": "Category",
+    "styleTags": "Style tags",
+    "styleTagsHint": "casual, minimal, sporty…",
+    "editTruthNote": "Your corrections override the AI label and improve future closet-based decisions.",
+    "category": {
+      "top": "Top",
+      "bottom": "Bottom",
+      "dress": "Dress",
+      "outerwear": "Outerwear",
+      "shoes": "Shoes",
+      "accessory": "Accessory",
+      "other": "Other"
+    }
   },
   "store": {
     "title": "Store mode",
     "buy": "Buy",
     "consider": "Consider",
-    "skip": "Skip"
+    "skip": "Skip",
+    "decisionTitle": "Should I buy it?",
+    "decisionHint": "Describe the item. AI Beauty checks your closet first and avoids pretending it knows live stock or prices.",
+    "storePlaceholder": "Store (optional)",
+    "productPlaceholder": "Item, color and cut — e.g. black cropped blazer",
+    "pricePlaceholder": "Price / budget (optional)",
+    "addPhoto": "Add product photo",
+    "changePhoto": "Change photo",
+    "evaluate": "Evaluate",
+    "closetCheck": "Closet-first check",
+    "closetCount": "{{count}} closet items available for comparison.",
+    "closetEmpty": "Your closet is empty, so duplicate checking is limited.",
+    "item": "Item",
+    "needDescription": "Add a clear product description before deciding.",
+    "duplicateReason": "You appear to own a very similar piece already. Skip unless this replaces something worn out or fills a specific fit need.",
+    "noClosetReason": "There is not enough closet data yet for a confident buy decision. Consider it, but compare fit and versatility first.",
+    "considerReason": "No obvious duplicate was found. Consider it only if it works with at least three pieces you already own and fits your real budget.",
+    "truthfulNote": "This is a closet-based decision aid, not a live store-stock or price claim.",
+    "budgetPlaceholder": "Budget ceiling (optional)",
+    "compatibleCount": "Works with about {{count}} closet pieces based on current metadata.",
+    "trendSupport": "Verified weekly trend signal: {{trend}}",
+    "staleTrend": "Older trend data ({{date}}): {{trend}}",
+    "reason": {
+      "duplicate": "You already appear to own a very similar piece. Skip unless it replaces something worn out.",
+      "over_budget": "This is above the budget ceiling you entered, so skip it for now.",
+      "disliked_color": "The description matches a color you marked as disliked. Skip unless you intentionally want to revisit that preference.",
+      "versatile": "No obvious duplicate was found and it appears versatile with your closet.",
+      "favorite_color": "It matches one of your favorite colors, but still check fit and real need.",
+      "trend_support": "A verified trend signal supports it, but trend never overrides your taste or budget.",
+      "stale_trend_support": "Only older dated trend data supports it; treat that as context, not current fashion proof.",
+      "consider": "There is not enough evidence for a confident buy. Compare fit, need and versatility first.",
+      "rejected_history": "This resembles looks you previously rejected. Skip unless your preference has changed.",
+      "loved_history": "This echoes looks you previously loved; use that as a preference signal, not a reason to buy by itself."
+    },
+    "photoDetected": "Photo analysis",
+    "photoDetectedMeta": "{{category}} · {{color}} · confidence: {{confidence}}",
+    "unknownColor": "color not identified",
+    "photoAnalysisUnavailable": "Photo analysis is unavailable right now. You can still decide from the description; no visual result is being invented.",
+    "evaluating": "Evaluating…",
+    "compatibilityScore": "Wardrobe compatibility: {{score}}/100",
+    "compatibilityMeaning": "This score estimates how easily the item can work with pieces you already own. It is not a fit guarantee.",
+    "topMatches": "Strongest wardrobe matches: {{items}}"
   },
   "profile": {
     "title": "Profile",
@@ -219,8 +312,10 @@
     "signOut": "Sign out",
     "account": "Account",
     "accountLocalOnly": "This account is stored on this device only.",
-    "accountSynced": "Signed in and synced.",
-    "guestNotice": "You're browsing as a guest. Sign in to keep your data across devices."
+    "accountSynced": "Signed in. Your style profile, photos, wardrobe and Saved Looks remain on this device in this build.",
+    "guestNotice": "You're browsing as a guest. Sign in to use an account; cross-device style-data sync is not enabled in this build.",
+    "coveragePreference": "Coverage preference",
+    "coveragePreferenceHint": "Choose this yourself. AI Beauty never infers coverage or modesty from your photo, country or identity."
   },
   "errors": {
     "generic": "Something went wrong.",
@@ -238,7 +333,22 @@
     "yearly": "yearly",
     "subscribe": "Subscribe",
     "manage": "Manage subscription",
-    "sandboxNotice": "No billing provider is configured yet — this runs in local sandbox mode, so you can test the paywall without any real charge."
+    "sandboxNotice": "No billing provider is configured yet — this runs in local sandbox mode, so you can test the paywall without any real charge.",
+    "noPlans": "Subscription plans are temporarily unavailable.",
+    "loadError": "Plans could not be loaded. Check your connection and try again.",
+    "perks": {
+      "saved": "Unlimited saved looks",
+      "runway": "Runway video mode",
+      "storeMode": "Advanced Store Mode"
+    },
+    "purchaseError": "Purchase could not be completed. You were not charged.",
+    "restoreSuccess": "Your Plus purchase was restored.",
+    "restoreNone": "No active Plus purchase was found for this store account.",
+    "restoreError": "Purchases could not be restored. Check your connection and try again.",
+    "plusRequiredTitle": "AI Beauty Plus feature",
+    "runwayPlusBody": "Runway video recording is included with AI Beauty Plus.",
+    "storePlusBody": "Advanced in-store decision support is included with AI Beauty Plus.",
+    "viewPlus": "View AI Beauty Plus"
   },
   "sharing": {
     "shareText": "My look for today, styled by AI Beauty."
@@ -262,7 +372,20 @@
   },
   "runway": {
     "title": "Runway",
-    "subtitle": "Capture a runway-style photo and preview a look style on it."
+    "subtitle": "Capture a runway-style photo and preview a look style on it.",
+    "permissionTitle": "Camera and microphone access",
+    "permissionBody": "Runway needs camera access and, for video, microphone permission. You can change this in device settings.",
+    "openSettings": "Open settings",
+    "allowCamera": "Allow camera",
+    "flipCamera": "Flip camera",
+    "record": "Record 8s",
+    "stop": "Stop",
+    "recordError": "The video could not be recorded. Please try again.",
+    "readyTitle": "Runway clip ready",
+    "readyBody": "Your short clip was saved locally. AI analysis is not shown unless a real analysis provider returns a result.",
+    "share": "Share video",
+    "retake": "Retake",
+    "shareMessage": "My AI Beauty Runway clip"
   },
   "styleLabels": {
     "clean_girl": "Clean Girl",
@@ -496,7 +619,26 @@
     "partMood": "feeling {{mood}}",
     "energy": "{{mood}} energy today",
     "energyBalanced": "Balanced energy today",
-    "yourSession": "your session"
+    "yourSession": "your session",
+    "specialOccasion": {
+      "withPlan": "For {{plan}}, keep the {{style}} direction but elevate one focal detail and keep the rest intentional.",
+      "default": "Use the {{style}} direction as the base, then elevate one focal detail for the occasion."
+    },
+    "shopping": "Shop only for a real gap: choose one piece that strengthens your {{style}} direction and works with at least three items you already own.",
+    "partCloset": "your wardrobe ({{count}} items)",
+    "partTrend": "this week’s verified trend snapshot (updated {{date}})",
+    "partTrendStale": "older trend data (last updated {{date}})",
+    "coverage": {
+      "more_coverage": "Keep the silhouette more covered while preserving the style direction.",
+      "balanced": "Use a balanced amount of coverage and ease.",
+      "more_open": "A more open silhouette is welcome where practical and appropriate."
+    },
+    "coverageWhy": {
+      "more_coverage": "your explicit preference for more coverage",
+      "balanced": "your explicit balanced-coverage preference",
+      "more_open": "your explicit preference for a more open silhouette"
+    },
+    "partSocial": "your {{social}} context"
   },
   "zodiacKeywords": {
     "aries": "bold",
@@ -522,5 +664,67 @@
     "amber": "Amber",
     "aquatic": "Aquatic",
     "spicy": "Spicy"
+  },
+  "savedLooks": {
+    "title": "Saved looks",
+    "open": "Open saved looks",
+    "count": "{{count}} saved look",
+    "count_plural": "{{count}} saved looks",
+    "emptyTitle": "No saved looks yet",
+    "emptyBody": "Save a look from Today’s Look and it will appear here.",
+    "removeTitle": "Remove saved look?",
+    "removeBody": "This removes the look from this device.",
+    "clearAll": "Delete all saved looks",
+    "clearAllBody": "This will remove all saved looks from this device.",
+    "feedbackPrompt": "Help AI Beauty learn from this saved look.",
+    "loveIt": "Love it",
+    "notForMe": "Not for me",
+    "neverSuggest": "Never suggest again",
+    "createLook": "Create today’s look"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "dailyLook": "Daily look reminder",
+    "dailyLookHint": "A gentle reminder every morning at 08:00.",
+    "dailyTitle": "Your look is waiting ✨",
+    "dailyBody": "Open AI Beauty for today’s personalized look.",
+    "permissionDeniedTitle": "Notifications are off",
+    "permissionDeniedBody": "Allow notifications in your device settings to receive the daily look reminder.",
+    "openSettings": "Open settings",
+    "inactivity": "Inactivity reminder",
+    "inactivityHint": "Remind me only if I have not opened the app for 3 days.",
+    "inactivityTitle": "Your style assistant misses you ✨",
+    "inactivityBody": "Come back when you want a fresh look — no pressure.",
+    "weeklyTrend": "Weekly trend update",
+    "weeklyTrendHint": "Monday morning reminder to check verified weekly fashion signals.",
+    "weeklyTrendTitle": "This week’s fashion signals are ready",
+    "weeklyTrendBody": "See the latest verified trend snapshot and use only what fits you.",
+    "savedLook": "Saved look reminder",
+    "savedLookHint": "Friday evening reminder to reuse a look you already saved.",
+    "savedLookTitle": "A saved look deserves another outing",
+    "savedLookBody": "Open your Saved Looks and reuse a favorite instead of buying something new."
+  },
+  "privacy": {
+    "photoAiTitle": "AI photo processing",
+    "photoAiBody": "If you continue, photos used for selfie styling, Fit Check or closet analysis may be sent to the configured AI backend for that request. Photos stay in app-owned storage on this device unless you explicitly save/share them. You can revoke this permission in Profile.",
+    "photoAiAccept": "Allow AI photo analysis",
+    "photoAiSetting": "AI photo analysis",
+    "photoAiSettingHint": "Allow locally stored photos to be sent to the configured AI backend when a photo-based feature needs them."
+  },
+  "coveragePreference": {
+    "no_preference": "No preference",
+    "more_coverage": "More coverage",
+    "balanced": "Balanced coverage",
+    "more_open": "More open"
+  },
+  "socialContext": {
+    "title": "Who are you with?",
+    "subtitle": "Optional — this only shapes the occasion context.",
+    "solo": "Solo",
+    "friends": "Friends",
+    "date": "Date",
+    "partner": "Partner",
+    "namePlaceholder": "Name (optional)",
+    "zodiacHint": "Their zodiac sign (optional, playful signal only)"
   }
 }

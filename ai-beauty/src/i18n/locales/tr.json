@@ -14,7 +14,8 @@
     "regenerate": "Başka bir kombin",
     "edit": "Düzenle",
     "surpriseMe": "Beni şaşırt",
-    "notNow": "Şimdi değil"
+    "notNow": "Şimdi değil",
+    "delete": "Sil"
   },
   "nav": {
     "home": "Ana Sayfa",
@@ -51,7 +52,13 @@
     "finishSubtitle": "Zamanla zevkini daha iyi öğreneceğiz — burada hiçbir şey kesin değil.",
     "startWithSelfie": "Selfie ile başla",
     "createMyLook": "Kombinimi oluştur",
-    "skipPhoto": "Şimdilik geç"
+    "skipPhoto": "Şimdilik geç",
+    "languageQuestion": "Dilini seç",
+    "basicsQuestion": "Seni biraz tanıyalım",
+    "basicsSubtitle": "İsteğe bağlı. Tahmin yürütmeden önerileri sana uyarlamamıza yardımcı olur.",
+    "agePlaceholder": "Yaş (13+)",
+    "interestsSubtitle": "Gerçekten sevdiğin birkaç tarzı seç. Daha sonra değiştirebilirsin.",
+    "coverageQuestion": "Kapalılık konusunda bir tercihin var mı?"
   },
   "modules": {
     "outfits": "Kombin",
@@ -132,7 +139,9 @@
       "fragrance": "Parfüm",
       "outfit": "Kombin",
       "why": "Neden bu kombin",
-      "energy": "Bugünün enerjisi"
+      "energy": "Bugünün enerjisi",
+      "specialOccasion": "Özel gün",
+      "shopping": "Alışveriş"
     }
   },
   "zodiac": {
@@ -150,6 +159,7 @@
     "uploadCta": "Fotoğraf ekle",
     "retake": "Yeniden çek",
     "analyzing": "Kombinin analiz ediliyor...",
+    "analysisError": "Bu fotoğraf şu anda analiz edilemedi. Tekrar dene veya fotoğrafı yeniden çek.",
     "outcomeKeep": "Böyle kalsın",
     "outcomeAdjust": "Ufak düzeltme",
     "outcomeSwap": "Değiştir",
@@ -162,14 +172,29 @@
     "shopOnlyIfNeeded": "Sadece gerekirse satın al",
     "lowConfidence": "Bu fotoğraftan net bir değerlendirme yapamıyorum. Önden, aydınlık, tüm vücut bir fotoğraf dene.",
     "uploadFromLibrary": "Kitaplıktan seç",
-    "enhanceHint": "Kamera fotoğrafları önce güzellik iyileştiriciyle açılır — analiz etmeden önce ayarla ya da geç.",
+    "enhanceHint": "Fit Check orijinal tam boy kareyi analiz eder; analiz öncesinde güzellik filtresi veya kırpma uygulanmaz.",
     "showItOnMeTitle": "Üzerimde göster",
-    "showItOnMeDescription": "Bu sürümde fotoğraf önizlemeli deneme henüz yapılandırılmadı — bir görüntü üretim sağlayıcısı bağlandığında kullanıma hazır olacak şekilde services/providers/ai içindeki bağlantı noktası hazır."
+    "showItOnMeDescription": "Bu sürümde fotoğraf önizlemeli deneme henüz yapılandırılmadı — bir görüntü üretim sağlayıcısı bağlandığında kullanıma hazır olacak şekilde services/providers/ai içindeki bağlantı noktası hazır.",
+    "detectedPieces": "Görünen parçalar",
+    "detectedPiecesHint": "Yalnızca net görünen parçalar listelenir. Ekledikten sonra Gardırobum bölümünde bilgileri kontrol edip düzeltebilirsin.",
+    "addToCloset": "Gardırobuma ekle",
+    "addedToCloset": "Gardırobuma eklendi",
+    "confidence": {
+      "low": "düşük güven",
+      "medium": "orta güven",
+      "high": "yüksek güven"
+    }
   },
   "tailor": {
     "title": "Terzi modu",
     "showToTailor": "Terziye göster",
-    "instructions": "Bu ekranı terzine göster — gereken düzeltmeyi net özetliyor."
+    "instructions": "Bu ekranı terzine göster — üzerinde kontrol edilmesi gereken nitel düzeltmeleri özetler.",
+    "measureOnPerson": "Kesin ölçüleri terzinin kıyafet üzerindeyken alması daha doğrudur.",
+    "copy": "Terzi notunu kopyala",
+    "share": "Terzi notunu paylaş",
+    "missingTitle": "Terzi önerisi bulunamadı",
+    "missingBody": "Bu ekran yalnızca geçerli terzi önerisi bulunan AYARLA sonucundan açılır. Fit Check’i yeniden yap.",
+    "backToFitCheck": "Fit Check’e dön"
   },
   "camera": {
     "original": "Orijinal",
@@ -194,13 +219,81 @@
   "closet": {
     "title": "Gardırobum",
     "empty": "Gardırobun boş — gardırop tabanlı önerileri açmak için birkaç parça ekle.",
-    "addItem": "Parça ekle"
+    "addItem": "Parça ekle",
+    "analysisFailed": "Bu parçayı net tanımlayamadım. Tek parçanın göründüğü daha aydınlık bir fotoğraf dene.",
+    "camera": "Fotoğraf çek",
+    "library": "Galeriden seç",
+    "deleteTitle": "Parça kaldırılsın mı?",
+    "deleteBody": "Bu işlem parçayı ve cihazda saklanan fotoğrafını kaldırır.",
+    "delete": "Kaldır",
+    "aiMetadataHint": "AI ilk bilgileri önerir. Sonrasında istediğin gibi düzeltebilirsin.",
+    "metadataTruthNote": "AI etiketleri sadece başlangıçtır. Kategori, renk, marka veya etiket yanlışsa düzenleyebilirsin.",
+    "edit": "Parçayı düzenle",
+    "editTitle": "Gardırop parçasını düzenle",
+    "itemName": "Parça adı",
+    "brand": "Marka",
+    "brandOptional": "Marka (isteğe bağlı)",
+    "color": "Renk",
+    "categoryLabel": "Kategori",
+    "styleTags": "Stil etiketleri",
+    "styleTagsHint": "günlük, minimal, sportif…",
+    "editTruthNote": "Senin düzeltmelerin AI tahmininin önüne geçer ve sonraki gardırop kararlarını iyileştirir.",
+    "category": {
+      "top": "Üst",
+      "bottom": "Alt",
+      "dress": "Elbise",
+      "outerwear": "Dış giyim",
+      "shoes": "Ayakkabı",
+      "accessory": "Aksesuar",
+      "other": "Diğer"
+    }
   },
   "store": {
     "title": "Mağaza modu",
     "buy": "Al",
     "consider": "Düşün",
-    "skip": "Geç"
+    "skip": "Geç",
+    "decisionTitle": "Almalı mıyım?",
+    "decisionHint": "Ürünü tarif et. AI Beauty önce gardırobunu kontrol eder; canlı stok veya fiyat biliyormuş gibi davranmaz.",
+    "storePlaceholder": "Mağaza (isteğe bağlı)",
+    "productPlaceholder": "Ürün, renk ve kesim — örn. siyah kısa blazer",
+    "pricePlaceholder": "Fiyat / bütçe (isteğe bağlı)",
+    "addPhoto": "Ürün fotoğrafı ekle",
+    "changePhoto": "Fotoğrafı değiştir",
+    "evaluate": "Değerlendir",
+    "closetCheck": "Önce gardırop kontrolü",
+    "closetCount": "Karşılaştırma için {{count}} gardırop ürünü var.",
+    "closetEmpty": "Gardırobun boş; benzer ürün kontrolü bu nedenle sınırlı.",
+    "item": "Ürün",
+    "needDescription": "Karar vermeden önce ürünü net biçimde tarif et.",
+    "duplicateReason": "Gardırobunda buna çok benzeyen bir parça var gibi görünüyor. Eskimiş bir parçanın yerini almıyorsa veya özel bir kalıp ihtiyacını çözmüyorsa geç.",
+    "noClosetReason": "Güvenilir bir satın alma kararı için henüz yeterli gardırop verisi yok. Kalıp ve kullanım çeşitliliğini karşılaştırarak düşün.",
+    "considerReason": "Belirgin bir benzer parça bulunmadı. Yalnız mevcut gardırobundaki en az üç parçayla çalışıyorsa ve gerçek bütçene uyuyorsa düşün.",
+    "truthfulNote": "Bu, gardırop temelli karar desteğidir; canlı mağaza stoku veya fiyat iddiası değildir.",
+    "budgetPlaceholder": "Bütçe üst sınırı (isteğe bağlı)",
+    "compatibleCount": "Mevcut meta verilere göre gardırobundaki yaklaşık {{count}} parçayla çalışıyor.",
+    "trendSupport": "Doğrulanmış haftalık trend sinyali: {{trend}}",
+    "staleTrend": "Eski trend verisi ({{date}}): {{trend}}",
+    "reason": {
+      "duplicate": "Gardırobunda çok benzer bir parça var gibi görünüyor. Eskimiş bir parçanın yerini almıyorsa geç.",
+      "over_budget": "Girdiğin bütçe üst sınırını aşıyor; şimdilik geç.",
+      "disliked_color": "Ürün açıklaması sevmediğin olarak işaretlediğin bir renkle eşleşiyor. Bu tercihi bilinçli değiştirmiyorsan geç.",
+      "versatile": "Belirgin bir benzer ürün yok ve gardırobunla çok yönlü görünüyor.",
+      "favorite_color": "Sevdiğin renklerden biriyle eşleşiyor; yine de kalıp ve gerçek ihtiyacı kontrol et.",
+      "trend_support": "Doğrulanmış bir trend sinyali destekliyor; ancak trend zevkinin veya bütçenin önüne geçmez.",
+      "stale_trend_support": "Yalnızca tarihli eski trend verisi destekliyor; bunu güncel moda kanıtı değil bağlam olarak gör.",
+      "consider": "Net bir al kararı için yeterli kanıt yok. Önce kalıp, ihtiyaç ve kullanım çeşitliliğini karşılaştır.",
+      "rejected_history": "Daha önce reddettiğin görünümlere benziyor. Tercihin değişmediyse geç.",
+      "loved_history": "Daha önce sevdiğin görünümlere benziyor; bunu tek başına satın alma nedeni değil, tercih sinyali olarak kullan."
+    },
+    "photoDetected": "Fotoğraf analizi",
+    "photoDetectedMeta": "{{category}} · {{color}} · güven: {{confidence}}",
+    "unknownColor": "renk belirlenemedi",
+    "photoAnalysisUnavailable": "Fotoğraf analizi şu anda kullanılamıyor. Açıklamadan karar vermeye devam edebilirsin; sahte görsel sonuç üretilmiyor.",
+    "evaluating": "Değerlendiriliyor…",
+    "compatibilityScore": "Gardırop uyumluluğu: {{score}}/100",
+    "compatibilityMeaning": "Bu puan ürünün mevcut parçalarınla ne kadar kolay kullanılabileceğini tahmin eder; kalıp garantisi değildir.",
+    "topMatches": "En güçlü gardırop eşleşmeleri: {{items}}"
   },
   "profile": {
     "title": "Profil",
@@ -219,8 +312,10 @@
     "signOut": "Çıkış yap",
     "account": "Hesap",
     "accountLocalOnly": "Bu hesap yalnızca bu cihazda saklanıyor.",
-    "accountSynced": "Giriş yapıldı ve senkronize.",
-    "guestNotice": "Misafir olarak geziyorsun. Verilerini cihazlar arasında tutmak için giriş yap."
+    "accountSynced": "Giriş yapıldı. Bu sürümde stil profilin, fotoğrafların, gardırobun ve Kayıtlı Kombinlerin bu cihazda kalır.",
+    "guestNotice": "Misafir olarak geziyorsun. Hesap kullanmak için giriş yapabilirsin; bu sürümde stil verilerinin cihazlar arası senkronizasyonu açık değil.",
+    "coveragePreference": "Kapalılık tercihi",
+    "coveragePreferenceHint": "Bunu yalnızca sen seçersin. AI Beauty fotoğrafından, ülkenden veya kimliğinden kapalılık tercihi çıkarmaz."
   },
   "errors": {
     "generic": "Bir şeyler ters gitti.",
@@ -238,7 +333,22 @@
     "yearly": "yıllık",
     "subscribe": "Abone ol",
     "manage": "Aboneliği yönet",
-    "sandboxNotice": "Henüz bir ödeme sağlayıcısı bağlı değil — bu, gerçek bir ücret olmadan test edebilmen için yerel sandbox modunda çalışıyor."
+    "sandboxNotice": "Henüz bir ödeme sağlayıcısı bağlı değil — bu, gerçek bir ücret olmadan test edebilmen için yerel sandbox modunda çalışıyor.",
+    "noPlans": "Abonelik planları geçici olarak kullanılamıyor.",
+    "loadError": "Planlar yüklenemedi. Bağlantını kontrol edip tekrar dene.",
+    "perks": {
+      "saved": "Sınırsız kayıtlı görünüm",
+      "runway": "Podyum video modu",
+      "storeMode": "Gelişmiş Mağaza Modu"
+    },
+    "purchaseError": "Satın alma tamamlanamadı. Ücret alınmadı.",
+    "restoreSuccess": "Plus satın alımın geri yüklendi.",
+    "restoreNone": "Bu mağaza hesabında aktif Plus satın alımı bulunamadı.",
+    "restoreError": "Satın alımlar geri yüklenemedi. Bağlantını kontrol edip tekrar dene.",
+    "plusRequiredTitle": "AI Beauty Plus özelliği",
+    "runwayPlusBody": "Podyum video kaydı AI Beauty Plus paketine dahildir.",
+    "storePlusBody": "Gelişmiş mağaza içi karar desteği AI Beauty Plus paketine dahildir.",
+    "viewPlus": "AI Beauty Plus’ı görüntüle"
   },
   "sharing": {
     "shareText": "Bugünkü kombinim, AI Beauty ile stillendirildi."
@@ -262,7 +372,20 @@
   },
   "runway": {
     "title": "Podyum",
-    "subtitle": "Podyum tarzı bir fotoğraf çek ve üzerinde bir stil dene."
+    "subtitle": "Podyum tarzı bir fotoğraf çek ve üzerinde bir stil dene.",
+    "permissionTitle": "Kamera ve mikrofon izni",
+    "permissionBody": "Podyum için kamera, video kaydı için mikrofon izni gerekir. İzinleri cihaz ayarlarından değiştirebilirsin.",
+    "openSettings": "Ayarları aç",
+    "allowCamera": "Kameraya izin ver",
+    "flipCamera": "Kamerayı çevir",
+    "record": "8 sn kaydet",
+    "stop": "Durdur",
+    "recordError": "Video kaydedilemedi. Lütfen tekrar dene.",
+    "readyTitle": "Podyum videosu hazır",
+    "readyBody": "Kısa videon cihazda güvenli şekilde kaydedildi. Gerçek analiz sağlayıcısı sonuç vermedikçe AI analizi gösterilmez.",
+    "share": "Videoyu paylaş",
+    "retake": "Tekrar çek",
+    "shareMessage": "AI Beauty Podyum videom"
   },
   "styleLabels": {
     "clean_girl": "Temiz Kız",
@@ -496,7 +619,26 @@
     "partMood": "{{mood}} hissetmeni",
     "energy": "Bugün {{mood}} enerji",
     "energyBalanced": "Bugün dengeli enerji",
-    "yourSession": "seansın"
+    "yourSession": "seansın",
+    "specialOccasion": {
+      "withPlan": "{{plan}} için {{style}} çizgisini koru; tek bir odak detayını yükselt, geri kalanını dengeli tut.",
+      "default": "{{style}} çizgisini temel al ve özel gün için yalnızca bir odak detayını yükselt."
+    },
+    "shopping": "Sadece gerçek bir eksik için alışveriş yap: {{style}} çizgini güçlendiren ve gardırobundaki en az üç parçayla çalışan tek bir parça seç.",
+    "partCloset": "gardırobunu ({{count}} parça)",
+    "partTrend": "bu haftanın doğrulanmış trend verisini (güncelleme {{date}})",
+    "partTrendStale": "eski trend verisini (son güncelleme {{date}})",
+    "coverage": {
+      "more_coverage": "Stil yönünü korurken silüeti daha kapalı tut.",
+      "balanced": "Kapalılık ve açıklık arasında dengeli bir silüet kullan.",
+      "more_open": "Pratik ve ortama uygun olduğunda daha açık bir silüet tercih edilebilir."
+    },
+    "coverageWhy": {
+      "more_coverage": "açıkça seçtiğin daha kapalı giyim tercihini",
+      "balanced": "açıkça seçtiğin dengeli kapalılık tercihini",
+      "more_open": "açıkça seçtiğin daha açık silüet tercihini"
+    },
+    "partSocial": "{{social}} bağlamını"
   },
   "zodiacKeywords": {
     "aries": "cesur",
@@ -522,5 +664,67 @@
     "amber": "Amber",
     "aquatic": "Sucul",
     "spicy": "Baharatlı"
+  },
+  "savedLooks": {
+    "title": "Kaydedilen kombinler",
+    "open": "Kaydedilenleri aç",
+    "count": "{{count}} kayıtlı kombin",
+    "count_plural": "{{count}} kayıtlı kombin",
+    "emptyTitle": "Henüz kayıtlı kombin yok",
+    "emptyBody": "Günün Kombini bölümünden bir kombini kaydettiğinde burada görünecek.",
+    "removeTitle": "Kayıtlı kombin silinsin mi?",
+    "removeBody": "Bu kombin bu cihazdan kaldırılacak.",
+    "clearAll": "Tüm kayıtlı kombinleri sil",
+    "clearAllBody": "Bu işlem bu cihazdaki tüm kayıtlı kombinleri kaldırır.",
+    "feedbackPrompt": "AI Beauty’nin bu görünümden öğrenmesine yardım et.",
+    "loveIt": "Bayıldım",
+    "notForMe": "Bana göre değil",
+    "neverSuggest": "Bir daha önerme",
+    "createLook": "Bugünün kombinini oluştur"
+  },
+  "notifications": {
+    "title": "Bildirimler",
+    "dailyLook": "Günlük kombin hatırlatıcısı",
+    "dailyLookHint": "Her sabah 08:00’de nazik bir hatırlatma.",
+    "dailyTitle": "Bugünkü kombinin seni bekliyor ✨",
+    "dailyBody": "Bugüne özel kişisel önerini görmek için AI Beauty’yi aç.",
+    "permissionDeniedTitle": "Bildirimler kapalı",
+    "permissionDeniedBody": "Günlük kombin hatırlatıcısını almak için cihaz ayarlarından bildirim izni ver.",
+    "openSettings": "Ayarları aç",
+    "inactivity": "Uzun süre girmeyince hatırlat",
+    "inactivityHint": "Uygulamayı 3 gün açmazsam bir kez hatırlat.",
+    "inactivityTitle": "Stil asistanın seni özledi ✨",
+    "inactivityBody": "Yeni bir görünüm istediğinde geri dön — baskı yok.",
+    "weeklyTrend": "Haftalık trend bildirimi",
+    "weeklyTrendHint": "Doğrulanmış haftalık moda sinyallerine pazartesi sabahı göz at.",
+    "weeklyTrendTitle": "Bu haftanın moda sinyalleri hazır",
+    "weeklyTrendBody": "Doğrulanmış trend özetine bak; yalnız sana uyanları kullan.",
+    "savedLook": "Kayıtlı kombin hatırlatıcısı",
+    "savedLookHint": "Cuma akşamı daha önce kaydettiğin bir kombini yeniden kullanmayı hatırlat.",
+    "savedLookTitle": "Kayıtlı bir kombin yeniden sahneye çıkabilir",
+    "savedLookBody": "Yeni bir şey almadan önce Kayıtlı Kombinlerindeki favorine göz at."
+  },
+  "privacy": {
+    "photoAiTitle": "AI fotoğraf işleme",
+    "photoAiBody": "Devam edersen selfie stil önerisi, Fit Check veya gardırop analizi için kullandığın fotoğraflar yalnız ilgili istek sırasında yapılandırılmış AI backend’ine gönderilebilir. Fotoğraflar, sen özellikle kaydetmedikçe/paylaşmadıkça cihazdaki uygulama alanında kalır. Bu izni Profil’den geri alabilirsin.",
+    "photoAiAccept": "AI fotoğraf analizine izin ver",
+    "photoAiSetting": "AI fotoğraf analizi",
+    "photoAiSettingHint": "Fotoğraf tabanlı bir özellik gerektiğinde cihazdaki fotoğrafın yapılandırılmış AI backend’ine gönderilmesine izin ver."
+  },
+  "coveragePreference": {
+    "no_preference": "Tercihim yok",
+    "more_coverage": "Daha kapalı",
+    "balanced": "Dengeli",
+    "more_open": "Daha açık"
+  },
+  "socialContext": {
+    "title": "Kiminle olacaksın?",
+    "subtitle": "İsteğe bağlı — yalnızca günün/ortamın bağlamını etkiler.",
+    "solo": "Tek başıma",
+    "friends": "Arkadaşlarla",
+    "date": "Randevu",
+    "partner": "Partnerimle",
+    "namePlaceholder": "İsim (isteğe bağlı)",
+    "zodiacHint": "Burcu (isteğe bağlı, yalnızca eğlenceli küçük bir sinyal)"
   }
 }

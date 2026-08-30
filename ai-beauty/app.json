@@ -3,37 +3,43 @@
     "name": "AI Beauty",
     "slug": "ai-beauty",
     "scheme": "aibeauty",
-    "version": "0.1.0",
+    "version": "0.9.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
       "backgroundColor": "#150912"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "android": {
-      "package": "com.aibeauty.app",
+      "package": "com.cgrkrd.aibeauty",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#150912"
       },
       "permissions": [
         "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO",
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
-      ]
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ],
+      "versionCode": 1
     },
     "ios": {
-      "bundleIdentifier": "com.aibeauty.app",
+      "bundleIdentifier": "com.cgrkrd.aibeauty",
       "supportsTablet": false,
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "AI Beauty uses your camera for Fit Check, selfies and Runway looks.",
         "NSPhotoLibraryUsageDescription": "AI Beauty needs photo access to let you pick or save look photos.",
         "NSPhotoLibraryAddUsageDescription": "AI Beauty saves your enhanced photos to your library when you tap Save.",
-        "NSLocationWhenInUseUsageDescription": "AI Beauty uses your location to get accurate local weather for today's look."
-      }
+        "NSLocationWhenInUseUsageDescription": "AI Beauty uses your location to get accurate local weather for today's look.",
+        "NSMicrophoneUsageDescription": "AI Beauty uses the microphone only when you record a Runway video."
+      },
+      "buildNumber": "1"
     },
     "plugins": [
       "expo-router",
@@ -54,12 +60,11 @@
           "savePhotosPermission": "AI Beauty saves your enhanced photos to your library when you tap Save.",
           "isAccessMediaLocationEnabled": false
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "extra": {
-      "eas": {
-        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
-      }
+      "eas": {}
     }
   }
 }

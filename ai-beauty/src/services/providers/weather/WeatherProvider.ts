@@ -15,9 +15,8 @@ export interface WeatherProvider {
 }
 
 /**
- * Deterministic, offline seasonal estimate. Used when location permission
- * isn't granted or EXPO_PUBLIC_API_BASE_URL isn't configured. Good enough
- * to keep Today's Look useful without any network dependency.
+ * Deterministic, offline seasonal estimate used only when the user turns
+ * automatic weather OFF. It must never be presented as a live/current reading.
  */
 export class DemoWeatherProvider implements WeatherProvider {
   async getCurrentWeather({ regionCountryCode }: { regionCountryCode: string }): Promise<WeatherReading> {

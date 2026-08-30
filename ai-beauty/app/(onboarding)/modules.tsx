@@ -13,7 +13,7 @@ export default function ModulesScreen() {
   const interestedModules = useUserStore((s) => s.interestedModules);
   const toggleModule = useUserStore((s) => s.toggleModule);
 
-  const next = () => router.push("/(onboarding)/theme");
+  const next = () => router.push("/(onboarding)/style");
 
   return (
     <OnboardingStep

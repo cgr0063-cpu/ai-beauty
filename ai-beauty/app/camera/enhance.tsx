@@ -1,8 +1,8 @@
-import React, { useRef, useState } from "react";
-import { View, Text, StyleSheet, Image, Alert, Pressable } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { View, Text, StyleSheet, Image, Alert, Pressable, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import Slider from "@react-native-community/slider";
 import * as MediaLibrary from "expo-media-library";
@@ -14,13 +14,20 @@ import { Button } from "@/design-system/components/Button";
 import { useAppTheme } from "@/design-system/ThemeProvider";
 import { useSettingsStore } from "@/state/settingsStore";
 import { CAMERA_FILTERS, getFilterById, CameraFilterId, CameraMode } from "@/data/cameraFilters";
+import { useMediaFlowStore } from "@/state/mediaFlowStore";
+import { useUserStore } from "@/state/userStore";
+import { deletePersistedPhoto, persistUserPhoto } from "@/services/storage/photoLibrary";
 
 export default function CameraEnhanceScreen() {
   const { theme } = useAppTheme();
   const { t } = useTranslation();
   const router = useRouter();
-  const params = useLocalSearchParams<{ photoUri: string; mode?: CameraMode; returnTo?: string }>();
   const settings = useSettingsStore();
+  const photoUri = useMediaFlowStore((s) => s.enhancePhotoUri);
+  const mode = useMediaFlowStore((s) => s.enhanceMode);
+  const purpose = useMediaFlowStore((s) => s.enhancePurpose);
+  const clearEnhance = useMediaFlowStore((s) => s.clearEnhance);
+  const setSelfieUri = useUserStore((s) => s.setSelfieUri);
 
   const [filterId, setFilterId] = useState<CameraFilterId>((settings.defaultCameraFilterId as CameraFilterId) ?? "clean");
   const [intensity, setIntensity] = useState(settings.defaultCameraIntensity ?? 40); // 0-100
@@ -28,8 +35,15 @@ export default function CameraEnhanceScreen() {
   const [saving, setSaving] = useState(false);
 
   const captureViewRef = useRef<View>(null);
+  const adoptedSelfieRef = useRef<string | null>(null);
   const filter = getFilterById(filterId);
   const effectiveOpacity = showOriginal ? 0 : (intensity / 100) * filter.maxOverlayOpacity;
+
+  useEffect(() => () => {
+    if (purpose === "selfie" && photoUri && adoptedSelfieRef.current !== photoUri) {
+      deletePersistedPhoto(photoUri).catch(() => {});
+    }
+  }, [photoUri, purpose]);
 
   const onSaveDefault = () => {
     settings.setDefaultCameraStyle(filterId, intensity);
@@ -43,24 +57,36 @@ export default function CameraEnhanceScreen() {
 
   const onConfirm = async () => {
     try {
-      const finalUri = showOriginal || effectiveOpacity === 0 ? params.photoUri : await flattenAndGetUri();
-      if (params.returnTo) {
-        router.replace({ pathname: params.returnTo as any, params: { photoUri: finalUri ?? params.photoUri } });
-      } else {
-        router.back();
+      if (!photoUri) throw new Error("missing_photo");
+      const finalUri = showOriginal || effectiveOpacity === 0 ? photoUri : await flattenAndGetUri();
+      let resolvedUri = finalUri ?? photoUri;
+      if (purpose === "selfie" && resolvedUri !== photoUri) {
+        resolvedUri = await persistUserPhoto(resolvedUri, "selfie");
       }
+      if (purpose === "selfie") {
+        const previous = useUserStore.getState().selfieUri;
+        setSelfieUri(resolvedUri);
+        adoptedSelfieRef.current = resolvedUri;
+        if (previous && previous !== resolvedUri) await deletePersistedPhoto(previous).catch(() => {});
+        if (photoUri !== resolvedUri) await deletePersistedPhoto(photoUri).catch(() => {});
+      }
+      clearEnhance();
+      router.back();
     } catch {
-      // Baking the filter failed — fall back to the original photo rather than blocking the flow.
-      if (params.returnTo) {
-        router.replace({ pathname: params.returnTo as any, params: { photoUri: params.photoUri } });
-      } else {
-        router.back();
+      // Baking the filter failed — preserve the original image, but never leak its URI into navigation.
+      if (photoUri && purpose === "selfie") {
+        const previous = useUserStore.getState().selfieUri;
+        setSelfieUri(photoUri);
+        adoptedSelfieRef.current = photoUri;
+        if (previous && previous !== photoUri) await deletePersistedPhoto(previous).catch(() => {});
       }
+      clearEnhance();
+      router.back();
     }
   };
 
   const onSaveToDevice = async () => {
-    if (!params.photoUri) {
+    if (!photoUri) {
       Alert.alert(t("camera.noPhoto"));
       return;
     }
@@ -83,7 +109,7 @@ export default function CameraEnhanceScreen() {
   };
 
   const onShare = async () => {
-    if (!params.photoUri) {
+    if (!photoUri) {
       Alert.alert(t("camera.noPhoto"));
       return;
     }
@@ -104,7 +130,7 @@ export default function CameraEnhanceScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <ScreenHeader
-        title={t(modeTitleKey(params.mode))}
+        title={t(modeTitleKey(mode ?? undefined))}
         rightAction={
           <Pressable accessibilityRole="button" accessibilityLabel={t("common.done")} onPress={onConfirm}>
             <Check size={22} color={theme.colors.accent} />
@@ -112,10 +138,11 @@ export default function CameraEnhanceScreen() {
         }
       />
 
+      <ScrollView contentContainerStyle={styles.screenScroll} showsVerticalScrollIndicator={false}>
       <View style={styles.previewWrap}>
         <View ref={captureViewRef} collapsable={false} style={styles.previewBox}>
-          {params.photoUri ? (
-            <Image source={{ uri: params.photoUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          {photoUri ? (
+            <Image source={{ uri: photoUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
           ) : (
             <View style={[StyleSheet.absoluteFill, styles.emptyState, { backgroundColor: theme.colors.cardAlt }]}>
               <ImageOff size={36} color={theme.colors.textMuted} />
@@ -215,6 +242,7 @@ export default function CameraEnhanceScreen() {
           </View>
         </View>
       </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -226,8 +254,9 @@ function modeTitleKey(mode?: CameraMode): string {
 }
 
 const styles = StyleSheet.create({
-  previewWrap: { flex: 1, padding: 16 },
-  previewBox: { flex: 1, borderRadius: 22, overflow: "hidden", backgroundColor: "#00000011" },
+  screenScroll: { flexGrow: 1, paddingBottom: 24 },
+  previewWrap: { minHeight: 300, flexGrow: 1, padding: 16 },
+  previewBox: { minHeight: 280, flex: 1, borderRadius: 22, overflow: "hidden", backgroundColor: "#00000011" },
   controls: { padding: 20, paddingTop: 4 },
   emptyState: { alignItems: "center", justifyContent: "center" },
 });

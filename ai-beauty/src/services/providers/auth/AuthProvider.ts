@@ -21,8 +21,11 @@ export interface AuthResult {
 export interface AuthProvider {
   signInWithEmail(email: string, password: string): Promise<AuthResult>;
   registerWithEmail(email: string, password: string, name?: string): Promise<AuthResult>;
-  signInWithGoogle(payload: { email: string; name: string | null; googleSub: string }): Promise<AuthResult>;
-  signInWithApple(payload: { email: string | null; name: string | null; appleSub: string }): Promise<AuthResult>;
+  signInWithGoogle(payload: { idToken: string }): Promise<AuthResult>;
+  signInWithApple(payload: { identityToken: string; name: string | null }): Promise<AuthResult>;
   signOut(): Promise<void>;
+  deleteAccount(): Promise<void>;
+  exportAccountData(): Promise<unknown | null>;
   getCurrentUser(): Promise<AuthUser | null>;
+  getToken(): Promise<string | null>;
 }

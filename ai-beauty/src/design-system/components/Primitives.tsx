@@ -9,6 +9,7 @@ import {
 import { ChevronLeft, Info } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { useAppTheme } from "../ThemeProvider";
 
 export function Card({
@@ -86,7 +87,7 @@ export function Chip({
         style={[
           styles.chipLabel,
           {
-            color: active ? "#FFFFFF" : theme.colors.textSecondary,
+            color: active ? (theme.id === "minimalLight" ? "#FFFFFF" : theme.id === "roseSoft" ? "#3A2420" : theme.colors.background) : theme.colors.textSecondary,
             marginLeft: icon ? 6 : 0,
           },
         ]}
@@ -138,16 +139,18 @@ export function ScreenHeader({
   rightAction?: React.ReactNode;
 }) {
   const { theme } = useAppTheme();
+  const { t } = useTranslation();
   const router = useRouter();
   return (
     <View style={styles.header}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Go back"
+        accessibilityLabel={t("common.back")}
         hitSlop={12}
         onPress={() => {
           Haptics.selectionAsync().catch(() => {});
           if (router.canGoBack()) router.back();
+          else router.replace("/");
         }}
         style={styles.headerBtn}
       >
@@ -166,9 +169,9 @@ export function ScreenHeader({
         {title}
       </Text>
       {onSkip ? (
-        <Pressable onPress={onSkip} hitSlop={12} style={styles.headerBtn} accessibilityRole="button">
+        <Pressable onPress={onSkip} hitSlop={12} style={styles.headerBtn} accessibilityRole="button" accessibilityLabel={skipLabel ?? t("common.skip")}>
           <Text style={{ color: theme.colors.accent, fontWeight: "600" }}>
-            {skipLabel ?? "Skip"}
+            {skipLabel ?? t("common.skip")}
           </Text>
         </Pressable>
       ) : rightAction ? (

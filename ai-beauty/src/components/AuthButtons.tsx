@@ -7,13 +7,16 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/design-system/components/Button";
 import { ComingSoonNotice } from "@/design-system/components/Primitives";
 import { getAuthProvider, isAppleSignInConfigured, isGoogleSignInConfigured } from "@/services/providers/auth";
-import { useAuthStore } from "@/state/authStore";
+import { activateSession } from "@/services/sessionLifecycle";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export function AuthButtons({ onSuccess, onError }: { onSuccess: () => void; onError: (message: string) => void }) {
   const { t } = useTranslation();
-  const setSession = useAuthStore((s) => s.setSession);
+  const [appleAvailable, setAppleAvailable] = React.useState(false);
+  React.useEffect(() => {
+    if (Platform.OS === "ios") AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false));
+  }, []);
 
   const [, googleResponse, googlePromptAsync] = Google.useIdTokenAuthRequest({
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
@@ -30,16 +33,11 @@ export function AuthButtons({ onSuccess, onError }: { onSuccess: () => void; onE
 
   async function handleGoogleToken(idToken: string) {
     try {
-      const decoded = decodeJwtPayload(idToken);
-      const result = await getAuthProvider().signInWithGoogle({
-        email: decoded.email,
-        name: decoded.name ?? null,
-        googleSub: decoded.sub,
-      });
-      setSession(result.user, result.scope);
+      const result = await getAuthProvider().signInWithGoogle({ idToken });
+      await activateSession(result.user, result.scope);
       onSuccess();
     } catch (e) {
-      onError((e as Error).message);
+      onError(t("errors.generic"));
     }
   }
 
@@ -54,16 +52,16 @@ export function AuthButtons({ onSuccess, onError }: { onSuccess: () => void; onE
       const fullName = credential.fullName
         ? [credential.fullName.givenName, credential.fullName.familyName].filter(Boolean).join(" ")
         : null;
+      if (!credential.identityToken) throw new Error("apple_identity_token_missing");
       const result = await getAuthProvider().signInWithApple({
-        email: credential.email,
+        identityToken: credential.identityToken,
         name: fullName,
-        appleSub: credential.user,
       });
-      setSession(result.user, result.scope);
+      await activateSession(result.user, result.scope);
       onSuccess();
     } catch (e: any) {
       if (e?.code === "ERR_REQUEST_CANCELED") return;
-      onError(e.message ?? "apple_sign_in_failed");
+      onError(t("errors.generic"));
     }
   }
 
@@ -79,7 +77,7 @@ export function AuthButtons({ onSuccess, onError }: { onSuccess: () => void; onE
       )}
 
       {Platform.OS === "ios" &&
-        (isAppleSignInConfigured ? (
+        (isAppleSignInConfigured && appleAvailable ? (
           <AppleAuthentication.AppleAuthenticationButton
             buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
             buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
@@ -94,40 +92,3 @@ export function AuthButtons({ onSuccess, onError }: { onSuccess: () => void; onE
   );
 }
 
-function decodeJwtPayload(token: string): any {
-  const [, payload] = token.split(".");
-  const json = base64UrlDecode(payload);
-  return JSON.parse(json);
-}
-
-/** Minimal base64url decoder — avoids relying on Buffer/atob, neither of
- * which is guaranteed present in the Hermes JS engine RN uses. */
-function base64UrlDecode(input: string): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-  let str = input.replace(/-/g, "+").replace(/_/g, "/");
-  while (str.length % 4) str += "=";
-  let output = "";
-  let buffer = 0;
-  let bits = 0;
-  for (const char of str) {
-    if (char === "=") break;
-    const value = chars.indexOf(char);
-    if (value === -1) continue;
-    buffer = (buffer << 6) | value;
-    bits += 6;
-    if (bits >= 8) {
-      bits -= 8;
-      output += String.fromCharCode((buffer >> bits) & 0xff);
-    }
-  }
-  try {
-    return decodeURIComponent(
-      output
-        .split("")
-        .map((c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0"))
-        .join("")
-    );
-  } catch {
-    return output;
-  }
-}

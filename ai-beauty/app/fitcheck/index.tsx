@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, Image, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { CheckCircle2, Wrench, RefreshCcw, ShoppingBag } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { CheckCircle2, Wrench, RefreshCcw, ShoppingBag, Plus } from "lucide-react-native";
 import { ScreenHeader, Card, ComingSoonNotice } from "@/design-system/components/Primitives";
 import { Button } from "@/design-system/components/Button";
 import { useAppTheme } from "@/design-system/ThemeProvider";
@@ -11,6 +11,7 @@ import { useTodayContextStore } from "@/state/todayContextStore";
 import { useWardrobeStore } from "@/state/wardrobeStore";
 import { getAIProvider } from "@/services/providers/ai";
 import { FitCheckResult, FitCheckOutcome } from "@/services/providers/ai/AIProvider";
+import { useMediaFlowStore } from "@/state/mediaFlowStore";
 
 const OUTCOME_META: Record<FitCheckOutcome, { icon: (c: string) => React.ReactNode; tone: "success" | "warning" | "accent" }> = {
   keep: { icon: (c) => <CheckCircle2 color={c} size={22} />, tone: "success" },
@@ -21,47 +22,63 @@ const OUTCOME_META: Record<FitCheckOutcome, { icon: (c: string) => React.ReactNo
 
 export default function FitCheckResultScreen() {
   const { theme } = useAppTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
-  const params = useLocalSearchParams<{ photoUri: string }>();
+  const photoUri = useMediaFlowStore((s) => s.fitCheckPhotoUri);
   const ctx = useTodayContextStore();
   const closetItems = useWardrobeStore((s) => s.items);
+  const addClosetItem = useWardrobeStore((s) => s.addItem);
+  const setTailorAdvice = useMediaFlowStore((s) => s.setTailorAdvice);
+  const [addedCandidates, setAddedCandidates] = useState<Record<number, boolean>>({});
 
   const [result, setResult] = useState<FitCheckResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const [analysisFailed, setAnalysisFailed] = useState(false);
+  const [retryNonce, setRetryNonce] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     async function run() {
       setLoading(true);
+      setAnalysisFailed(false);
+      if (!photoUri) {
+        if (!cancelled) { setLoading(false); setResult(null); }
+        return;
+      }
       const provider = getAIProvider();
       const res = await provider.analyzeFitCheck({
-        photoUri: params.photoUri,
+        photoUri,
         planId: ctx.planId,
         styleId: ctx.styleId,
         weatherCondition: ctx.weatherCondition,
-        closetItemLabels: closetItems.map((i) => i.label),
+        closetItemLabels: closetItems.map((i) => [i.label, i.category, i.color, ...i.styleTags].filter(Boolean).join(" · ")),
+        languageCode: i18n.language,
       });
       if (!cancelled) {
         setResult(res);
         setLoading(false);
       }
     }
-    run();
+    run().catch(() => { if (!cancelled) { setLoading(false); setResult(null); setAnalysisFailed(true); } });
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.photoUri]);
+  }, [photoUri, retryNonce]);
 
   const meta = result ? OUTCOME_META[result.outcome] : null;
+  const retake = () => {
+    useMediaFlowStore.getState().setFitCheckPhotoUri(null);
+    useMediaFlowStore.getState().setTailorAdvice(null);
+    router.replace("/(tabs)/fitcheck-entry");
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <ScreenHeader title={t("fitCheck.title")} />
       <ScrollView contentContainerStyle={styles.scroll}>
-        {params.photoUri && (
-          <Image source={{ uri: params.photoUri }} style={styles.photo} resizeMode="cover" />
+        {photoUri && (
+          <Image source={{ uri: photoUri }} style={styles.photo} resizeMode="cover" />
         )}
 
         {loading && (
@@ -73,11 +90,28 @@ export default function FitCheckResultScreen() {
           </Card>
         )}
 
+        {!loading && !result && !photoUri && (
+          <Card style={{ marginTop: 16 }}>
+            <Text style={{ color: theme.colors.textSecondary, marginBottom: 12 }}>{t("camera.noPhoto")}</Text>
+            <Button label={t("fitCheck.retake")} onPress={retake} variant="secondary" fullWidth />
+          </Card>
+        )}
+
+        {!loading && analysisFailed && photoUri && (
+          <Card style={{ marginTop: 16 }}>
+            <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={{ color: theme.colors.danger, marginBottom: 12 }}>{t("fitCheck.analysisError")}</Text>
+            <Button label={t("common.retry")} onPress={() => setRetryNonce((n) => n + 1)} variant="secondary" fullWidth />
+            <View style={{ height: 8 }} />
+            <Button label={t("fitCheck.retake")} onPress={retake} variant="ghost" fullWidth />
+          </Card>
+        )}
+
         {!loading && result && (
           <>
             {result.confidence === "low" && (
               <Card style={{ marginTop: 16 }}>
-                <Text style={{ color: theme.colors.textSecondary }}>{t("fitCheck.lowConfidence")}</Text>
+                <Text style={{ color: theme.colors.textSecondary, marginBottom: 12 }}>{t("fitCheck.lowConfidence")}</Text>
+                <Button label={t("fitCheck.retake")} onPress={retake} variant="secondary" fullWidth />
               </Card>
             )}
 
@@ -116,16 +150,44 @@ export default function FitCheckResultScreen() {
               )}
             </Card>
 
-            {result.outcome === "adjust" && result.tailorAdvice && (
+
+            {result.confidence !== "low" && result.detectedItems?.length > 0 && (
+              <Card style={{ marginTop: 12 }}>
+                <Text style={{ color: theme.colors.textPrimary, fontWeight: "800", fontSize: theme.typography.title, marginBottom: 6 }}>{t("fitCheck.detectedPieces")}</Text>
+                <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginBottom: 12 }}>{t("fitCheck.detectedPiecesHint")}</Text>
+                {result.detectedItems.map((item, index) => {
+                  const added = !!addedCandidates[index];
+                  return (
+                    <View key={`${item.label}_${index}`} style={{ backgroundColor: theme.colors.cardAlt, borderRadius: theme.radius.md, padding: 12, marginBottom: 10 }}>
+                      <Text style={{ color: theme.colors.textPrimary, fontWeight: "700" }}>{item.label}{item.color ? ` · ${item.color}` : ""}</Text>
+                      <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 3 }}>{t(`closet.category.${item.category}`)} · {t(`fitCheck.confidence.${item.confidence}`)}</Text>
+                      <View style={{ marginTop: 10 }}>
+                        <Button
+                          label={added ? t("fitCheck.addedToCloset") : t("fitCheck.addToCloset")}
+                          disabled={added}
+                          variant="secondary"
+                          fullWidth
+                          icon={<Plus size={16} color={theme.colors.textPrimary} />}
+                          onPress={() => {
+                            addClosetItem({ photoUri: null, category: item.category, label: item.label, color: item.color ?? undefined, styleTags: item.styleTags });
+                            setAddedCandidates((prev) => ({ ...prev, [index]: true }));
+                          }}
+                        />
+                      </View>
+                    </View>
+                  );
+                })}
+              </Card>
+            )}
+
+            {result.confidence !== "low" && result.outcome === "adjust" && result.tailorAdvice && (
               <View style={{ marginTop: 12 }}>
                 <Button
                   label={t("tailor.title")}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/fitcheck/tailor",
-                      params: { advice: JSON.stringify(result.tailorAdvice) },
-                    })
-                  }
+                  onPress={() => {
+                    setTailorAdvice(result.tailorAdvice);
+                    router.push("/fitcheck/tailor");
+                  }}
                   fullWidth
                   icon={<Wrench size={18} color="#fff" />}
                 />

@@ -6,7 +6,13 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p .",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "validate:production": "node scripts/validate-production-env.mjs",
+    "check:deployment": "node scripts/deployment-check.mjs",
+    "migrate": "tsx src/migrate-cli.ts",
+    "migrate:prod": "node dist/migrate-cli.js",
+    "db:backup": "node scripts/db-backup.mjs",
+    "db:restore": "node scripts/db-restore.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.0",
@@ -18,7 +24,10 @@
     "multer": "^1.4.5-lts.1",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "google-auth-library": "^9.14.2",
+    "jose": "^5.9.6",
+    "pg": "^8.13.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -28,6 +37,7 @@
     "@types/multer": "^1.4.11",
     "@types/node": "^20.14.0",
     "tsx": "^4.15.0",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "@types/pg": "^8.11.10"
   }
 }

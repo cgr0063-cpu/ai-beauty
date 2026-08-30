@@ -18,7 +18,14 @@ async function hash(input: string): Promise<string> {
 
 async function loadUsers(): Promise<StoredLocalUser[]> {
   const raw = await AsyncStorage.getItem(LOCAL_USERS_KEY);
-  return raw ? JSON.parse(raw) : [];
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    await AsyncStorage.removeItem(LOCAL_USERS_KEY);
+    return [];
+  }
 }
 
 async function saveUsers(users: StoredLocalUser[]) {
@@ -72,8 +79,28 @@ export class DemoAuthProvider implements AuthProvider {
     await AsyncStorage.removeItem(CURRENT_USER_KEY);
   }
 
+  async deleteAccount(): Promise<void> {
+    const current = await this.getCurrentUser();
+    if (current) {
+      const users = await loadUsers();
+      await saveUsers(users.filter((u) => u.id !== current.id));
+    }
+    await AsyncStorage.removeItem(CURRENT_USER_KEY);
+  }
+
+  async exportAccountData(): Promise<unknown | null> {
+    const current = await this.getCurrentUser();
+    return current ? { account: current, scope: "local", storedOnDeviceOnly: true } : null;
+  }
+
   async getCurrentUser(): Promise<AuthUser | null> {
     const raw = await AsyncStorage.getItem(CURRENT_USER_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    try { return JSON.parse(raw); }
+    catch {
+      await AsyncStorage.removeItem(CURRENT_USER_KEY);
+      return null;
+    }
   }
+  async getToken(): Promise<string | null> { return null; }
 }

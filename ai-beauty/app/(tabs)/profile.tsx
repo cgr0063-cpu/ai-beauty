@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, StyleSheet, Alert, Switch } from "react-native";
+import { View, Text, ScrollView, StyleSheet, Alert, Switch, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
@@ -18,6 +18,8 @@ import {
   UserCircle2,
   CloudSun,
   Crown,
+  Bell,
+  Bookmark,
 } from "lucide-react-native";
 import { Card, Chip, Badge } from "@/design-system/components/Primitives";
 import { Button } from "@/design-system/components/Button";
@@ -32,7 +34,17 @@ import { useWardrobeStore } from "@/state/wardrobeStore";
 import { SUPPORTED_LANGUAGES, setAppLanguage } from "@/i18n";
 import { TONE_OPTIONS, ADDRESS_PRESETS, MODULE_OPTIONS } from "@/data/context";
 import { clearAllAppStorage } from "@/services/storage/persist";
-import { getAuthProvider } from "@/services/providers/auth";
+import { getAuthProviderForScope } from "@/services/providers/auth";
+import { clearSession } from "@/services/sessionLifecycle";
+import {
+  scheduleDailyLookReminder, cancelDailyLookReminder,
+  scheduleWeeklyTrendReminder, cancelWeeklyTrendReminder,
+  scheduleSavedLookReminder, cancelSavedLookReminder,
+  refreshInactivityReminder, cancelInactivityReminder, cancelAllBeautyReminders,
+} from "@/services/notifications";
+import { deletePersistedPhotos } from "@/services/storage/photoLibrary";
+import { useTodayContextStore } from "@/state/todayContextStore";
+import { useMediaFlowStore } from "@/state/mediaFlowStore";
 
 const THEME_ORDER: ThemeId[] = ["signature", "midnight", "minimalLight", "roseSoft"];
 
@@ -48,37 +60,45 @@ export default function ProfileScreen() {
   const wardrobe = useWardrobeStore((s) => s.items);
   const [exporting, setExporting] = useState(false);
   const [locationBusy, setLocationBusy] = useState(false);
+  const [notificationBusy, setNotificationBusy] = useState(false);
 
   const addressOptions = ADDRESS_PRESETS[settings.language] ?? ADDRESS_PRESETS.en;
 
   const confirmDestructive = (title: string, action: () => void) => {
     Alert.alert(title, undefined, [
       { text: t("common.cancel"), style: "cancel" },
-      { text: t("common.done"), style: "destructive", onPress: action },
+      { text: t("common.delete"), style: "destructive", onPress: action },
     ]);
   };
 
   const onExportData = async () => {
     setExporting(true);
     try {
+      const providerAccountData = auth.scope ? await getAuthProviderForScope(auth.scope).exportAccountData().catch(() => null) : null;
       const payload = {
+        schemaVersion: 2,
         exportedAt: new Date().toISOString(),
+        account: auth.currentUser ? { id: auth.currentUser.id, email: auth.currentUser.email, name: auth.currentUser.name, provider: auth.currentUser.provider, scope: auth.scope } : null,
+        providerAccountData,
         profile: {
-          name: user.name,
-          age: user.age,
-          interestedModules: user.interestedModules,
-          favoriteStyleIds: user.favoriteStyleIds,
-          zodiacSignId: user.zodiacSignId,
+          name: user.name, age: user.age, interestedModules: user.interestedModules, favoriteStyleIds: user.favoriteStyleIds,
+          favoriteColors: user.favoriteColors, dislikedColors: user.dislikedColors, beautyIntensityPreference: user.beautyIntensityPreference, coveragePreference: user.coveragePreference,
+          zodiacSignId: user.zodiacSignId, onboardingStarted: user.onboardingStarted, onboardingCompleted: user.onboardingCompleted,
+          photos: { selfieStoredLocally: !!user.selfieUri, fullBodyStoredLocally: !!user.fullBodyPhotoUri },
         },
         settings: {
-          language: settings.language,
-          regionCountryCode: settings.regionCountryCode,
-          themeId: settings.themeId,
-          tone: settings.tone,
-          addressId: settings.addressId,
+          language: settings.language, regionCountryCode: settings.regionCountryCode, themeId: settings.themeId, tone: settings.tone, addressId: settings.addressId,
+          weatherAuto: settings.weatherAuto, manualWeatherCondition: settings.manualWeatherCondition, notificationsEnabled: settings.notificationsEnabled,
+          inactivityReminderEnabled: settings.inactivityReminderEnabled, weeklyTrendNotificationsEnabled: settings.weeklyTrendNotificationsEnabled,
+          savedLookReminderEnabled: settings.savedLookReminderEnabled, photoAiConsentAccepted: settings.photoAiConsentAccepted,
+          defaultCameraFilterId: settings.defaultCameraFilterId, defaultCameraIntensity: settings.defaultCameraIntensity,
         },
+        todayContext: (() => { const x = useTodayContextStore.getState(); return { dateKey:x.dateKey,moodId:x.moodId,planId:x.planId,gymSubOptionId:x.gymSubOptionId,styleId:x.styleId,weatherCondition:x.weatherCondition,temperatureC:x.temperatureC,zodiacApplied:x.zodiacApplied,tarotCardId:x.tarotCardId,socialContext:x.socialContext,companionName:x.companionName,companionZodiacSignId:x.companionZodiacSignId }; })(),
         savedLooks,
-        wardrobe,
+        savedLookFeedback: useSavedLooksStore.getState().feedback,
+        wardrobe: wardrobe.map(({ photoUri, ...item }) => ({ ...item, photoStoredLocally: !!photoUri })),
+        entitlement,
+        note: "Photos are kept as local app files and are not embedded in this JSON export.",
       };
       const path = `${FileSystem.cacheDirectory}ai-beauty-export-${Date.now()}.json`;
       await FileSystem.writeAsStringAsync(path, JSON.stringify(payload, null, 2));
@@ -101,10 +121,64 @@ export default function ProfileScreen() {
     setLocationBusy(false);
   };
 
+  const onToggleNotifications = async (value: boolean) => {
+    setNotificationBusy(true);
+    try {
+      if (value) {
+        const scheduled = await scheduleDailyLookReminder(
+          t("notifications.dailyTitle"),
+          t("notifications.dailyBody")
+        );
+        settings.setNotificationsEnabled(scheduled);
+        if (!scheduled) showNotificationSettings();
+      } else {
+        await cancelDailyLookReminder();
+        settings.setNotificationsEnabled(false);
+      }
+    } catch {
+      settings.setNotificationsEnabled(false);
+      Alert.alert(t("errors.generic"));
+    } finally {
+      setNotificationBusy(false);
+    }
+  };
+
+  const showNotificationSettings = () => Alert.alert(
+    t("notifications.permissionDeniedTitle"), t("notifications.permissionDeniedBody"),
+    [{ text: t("common.cancel"), style: "cancel" }, { text: t("notifications.openSettings"), onPress: () => Linking.openSettings() }]
+  );
+
+  const onToggleInactivity = async (value: boolean) => {
+    setNotificationBusy(true);
+    try {
+      const ok = value ? await refreshInactivityReminder(true, t("notifications.inactivityTitle"), t("notifications.inactivityBody")) : (await cancelInactivityReminder(), true);
+      settings.setInactivityReminderEnabled(value && ok);
+      if (value && !ok) showNotificationSettings();
+    } finally { setNotificationBusy(false); }
+  };
+
+  const onToggleWeeklyTrend = async (value: boolean) => {
+    setNotificationBusy(true);
+    try {
+      const ok = value ? await scheduleWeeklyTrendReminder(t("notifications.weeklyTrendTitle"), t("notifications.weeklyTrendBody")) : (await cancelWeeklyTrendReminder(), true);
+      settings.setWeeklyTrendNotificationsEnabled(value && ok);
+      if (value && !ok) showNotificationSettings();
+    } finally { setNotificationBusy(false); }
+  };
+
+  const onToggleSavedLook = async (value: boolean) => {
+    setNotificationBusy(true);
+    try {
+      const ok = value ? await scheduleSavedLookReminder(t("notifications.savedLookTitle"), t("notifications.savedLookBody")) : (await cancelSavedLookReminder(), true);
+      settings.setSavedLookReminderEnabled(value && ok);
+      if (value && !ok) showNotificationSettings();
+    } finally { setNotificationBusy(false); }
+  };
+
   const onSignOut = async () => {
-    await getAuthProvider().signOut();
-    auth.setSession(null, null);
-    user.setGuest(true);
+    if (auth.scope) await getAuthProviderForScope(auth.scope).signOut();
+    await clearSession();
+    router.replace("/(onboarding)/welcome");
   };
 
   return (
@@ -143,6 +217,36 @@ export default function ProfileScreen() {
               <Badge text={entitlement === "plus" ? t("subscription.currentPlanPlus") : t("subscription.currentPlanFree")} tone={entitlement === "plus" ? "success" : "accent"} />
             </View>
           </Card>
+        </SectionRow>
+
+        {/* Saved looks */}
+        <SectionRow icon={<Bookmark size={18} color={theme.colors.accent} />} title={t("savedLooks.title")}>
+          <Card onPress={() => router.push("/(tabs)/saved")}>
+            <Text style={{ color: theme.colors.textPrimary, fontWeight: "700" }}>{t("savedLooks.open")}</Text>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}>
+              {t("savedLooks.count", { count: savedLooks.length })}
+            </Text>
+          </Card>
+        </SectionRow>
+
+        {/* Notifications */}
+        <SectionRow icon={<Bell size={18} color={theme.colors.accent} />} title={t("notifications.title")}>
+          <Card style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={{ color: theme.colors.textPrimary, fontWeight: "600" }}>{t("notifications.dailyLook")}</Text>
+              <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}>{t("notifications.dailyLookHint")}</Text>
+            </View>
+            <Switch
+              value={settings.notificationsEnabled}
+              onValueChange={onToggleNotifications}
+              disabled={notificationBusy}
+              trackColor={{ true: theme.colors.accent, false: theme.colors.border }}
+              accessibilityLabel={t("notifications.dailyLook")}
+            />
+          </Card>
+          <NotificationToggle title={t("notifications.inactivity")} hint={t("notifications.inactivityHint")} value={settings.inactivityReminderEnabled} onChange={onToggleInactivity} disabled={notificationBusy} />
+          <NotificationToggle title={t("notifications.weeklyTrend")} hint={t("notifications.weeklyTrendHint")} value={settings.weeklyTrendNotificationsEnabled} onChange={onToggleWeeklyTrend} disabled={notificationBusy} />
+          <NotificationToggle title={t("notifications.savedLook")} hint={t("notifications.savedLookHint")} value={settings.savedLookReminderEnabled} onChange={onToggleSavedLook} disabled={notificationBusy} />
         </SectionRow>
 
         {/* Appearance */}
@@ -232,6 +336,17 @@ export default function ProfileScreen() {
           </View>
         </SectionRow>
 
+
+        {/* Coverage preference — explicit only, never inferred */}
+        <SectionRow icon={<ShieldCheck size={18} color={theme.colors.accent} />} title={t("profile.coveragePreference")}>
+          <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginBottom: 8 }}>{t("profile.coveragePreferenceHint")}</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+            {(["no_preference", "more_coverage", "balanced", "more_open"] as const).map((id) => (
+              <Chip key={id} label={t(`coveragePreference.${id}`)} active={user.coveragePreference === id} onPress={() => user.setCoveragePreference(id)} />
+            ))}
+          </View>
+        </SectionRow>
+
         {/* Privacy */}
         <SectionRow icon={<ShieldCheck size={18} color={theme.colors.accent} />} title={t("profile.privacy")}>
           <PrivacyRow
@@ -239,13 +354,22 @@ export default function ProfileScreen() {
             label={exporting ? t("common.loading") : t("profile.exportData")}
             onPress={onExportData}
           />
+          <Card style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8, paddingVertical: 12 }}>
+            <View style={{ flex: 1, marginRight: 12 }}><Text style={{ color: theme.colors.textPrimary }}>{t("privacy.photoAiSetting")}</Text><Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}>{t("privacy.photoAiSettingHint")}</Text></View>
+            <Switch value={settings.photoAiConsentAccepted} onValueChange={settings.setPhotoAiConsentAccepted} trackColor={{ true: theme.colors.accent, false: theme.colors.border }} />
+          </Card>
           <PrivacyRow
             icon={<Trash2 size={16} color={theme.colors.danger} />}
             label={t("profile.deletePhotos")}
             onPress={() =>
-              confirmDestructive(t("profile.deletePhotos"), () => {
+              confirmDestructive(t("profile.deletePhotos"), async () => {
+                const refs = [user.selfieUri, user.fullBodyPhotoUri, ...useWardrobeStore.getState().items.map((i) => i.photoUri)];
+                await deletePersistedPhotos(refs);
                 user.setSelfieUri(null);
                 user.setFullBodyPhotoUri(null);
+                useWardrobeStore.getState().clearPhotoUris();
+                useMediaFlowStore.getState().clearEnhance();
+                useMediaFlowStore.getState().setFitCheckPhotoUri(null);
               })
             }
           />
@@ -253,8 +377,10 @@ export default function ProfileScreen() {
             icon={<Trash2 size={16} color={theme.colors.danger} />}
             label={t("profile.clearHistory")}
             onPress={() =>
-              confirmDestructive(t("profile.clearHistory"), () => {
-                clearAllAppStorage(["aibeauty.savedLooks.v1", "aibeauty.todayContext.v1"]);
+              confirmDestructive(t("profile.clearHistory"), async () => {
+                useSavedLooksStore.getState().reset();
+                useTodayContextStore.getState().reset();
+                await clearAllAppStorage(["aibeauty.savedLooks.v1", "aibeauty.todayContext.v1"]);
               })
             }
           />
@@ -263,9 +389,13 @@ export default function ProfileScreen() {
             label={t("profile.deleteAccount")}
             onPress={() =>
               confirmDestructive(t("profile.deleteAccount"), async () => {
-                await getAuthProvider().signOut();
-                auth.setSession(null, null);
-                user.resetProfile();
+                const refs = [user.selfieUri, user.fullBodyPhotoUri, ...useWardrobeStore.getState().items.map((i) => i.photoUri)];
+                if (auth.scope) await getAuthProviderForScope(auth.scope).deleteAccount();
+                await deletePersistedPhotos(refs).catch(() => {});
+                await cancelAllBeautyReminders().catch(() => {});
+                useMediaFlowStore.getState().clearEnhance();
+                useMediaFlowStore.getState().setFitCheckPhotoUri(null);
+                await clearSession({ preserveSnapshot: false });
                 router.replace("/(onboarding)/welcome");
               })
             }
@@ -287,6 +417,14 @@ function SectionRow({ icon, title, children }: { icon: React.ReactNode; title: s
       {children}
     </View>
   );
+}
+
+function NotificationToggle({ title, hint, value, onChange, disabled }: { title: string; hint: string; value: boolean; onChange: (value: boolean) => void; disabled?: boolean }) {
+  const { theme } = useAppTheme();
+  return <Card style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+    <View style={{ flex: 1, marginRight: 12 }}><Text style={{ color: theme.colors.textPrimary, fontWeight: "600" }}>{title}</Text><Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}>{hint}</Text></View>
+    <Switch value={value} onValueChange={onChange} disabled={disabled} trackColor={{ true: theme.colors.accent, false: theme.colors.border }} />
+  </Card>;
 }
 
 function PrivacyRow({ icon, label, onPress }: { icon: React.ReactNode; label: string; onPress: () => void }) {

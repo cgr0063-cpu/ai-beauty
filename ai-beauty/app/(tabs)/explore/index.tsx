@@ -1,9 +1,8 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, StyleSheet, Alert } from "react-native";
+import { View, Text, ScrollView, StyleSheet, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
-import * as ImagePicker from "expo-image-picker";
 import { Store, Sparkles, Clapperboard } from "lucide-react-native";
 import { Card, Chip, SectionTitle } from "@/design-system/components/Primitives";
 import { useAppTheme } from "@/design-system/ThemeProvider";
@@ -28,20 +27,7 @@ export default function ExploreScreen() {
     ctx.setTarotCard(card.id);
   };
 
-  const startRunway = async () => {
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert(t("errors.cameraPermission"));
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({ quality: 0.85 });
-    if (!result.canceled && result.assets[0]) {
-      router.push({
-        pathname: "/camera/enhance",
-        params: { photoUri: result.assets[0].uri, mode: "runway" },
-      });
-    }
-  };
+  const startRunway = () => router.push("/runway");
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={["top"]}>
@@ -103,6 +89,26 @@ export default function ExploreScreen() {
               </View>
             );
           })}
+        </View>
+
+
+        {/* Social/date context — explicit optional signal */}
+        <View style={{ marginTop: 20 }}>
+          <SectionTitle subtitle={t("socialContext.subtitle")}>{t("socialContext.title")}</SectionTitle>
+          <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+            {(["solo", "friends", "date", "partner"] as const).map((id) => (
+              <Chip key={id} label={t(`socialContext.${id}`)} active={ctx.socialContext === id} onPress={() => ctx.setSocialContext(ctx.socialContext === id ? null : id)} />
+            ))}
+          </View>
+          {(ctx.socialContext === "date" || ctx.socialContext === "partner") && (
+            <Card style={{ marginTop: 8 }}>
+              <TextInput value={ctx.companionName ?? ""} onChangeText={(v) => ctx.setCompanionName(v)} placeholder={t("socialContext.namePlaceholder")} placeholderTextColor={theme.colors.textMuted} style={{ color: theme.colors.textPrimary, borderBottomWidth: 1, borderBottomColor: theme.colors.border, paddingVertical: 8, marginBottom: 10 }} maxLength={60} />
+              <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginBottom: 6 }}>{t("socialContext.zodiacHint")}</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                {ZODIAC_SIGNS.map((z) => <Chip key={`comp-${z.id}`} label={t(`zodiacLabels.${z.id}`, { defaultValue: z.label })} active={ctx.companionZodiacSignId === z.id} onPress={() => ctx.setCompanionZodiacSignId(ctx.companionZodiacSignId === z.id ? null : z.id)} />)}
+              </View>
+            </Card>
+          )}
         </View>
 
         {/* Styles */}

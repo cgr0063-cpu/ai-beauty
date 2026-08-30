@@ -62,3 +62,12 @@ contained to one file.
    Cloudflare Worker rewrite) — never serve auth/API traffic over plain HTTP
    outside local development.
 4. Add rate limiting to `/v1/auth/*` and `/v1/looks/*`.
+
+
+## Production migrations and operations
+
+Production PostgreSQL does not mutate schema during normal API startup by default. Run `npm run migrate:prod` as a deployment step before shifting traffic. The API fails closed when `schema_migrations` is missing or behind the current application version. PostgreSQL advisory locking prevents concurrent deploy instances from applying the same migration. `DB_AUTO_MIGRATE=true` exists only for controlled environments where automatic migrations are an explicit operational choice.
+
+Request logs are structured JSON and include an `x-request-id` correlation id, HTTP status and duration. Unhandled errors return a generic error plus the request id; raw exception stacks are not returned to clients.
+
+For database disaster-recovery commands see `../BACKUP_RESTORE_RUNBOOK.md`. The production Docker image includes PostgreSQL client tools and the backup/restore scripts, but database credentials must be injected at runtime through the deployment secret store.

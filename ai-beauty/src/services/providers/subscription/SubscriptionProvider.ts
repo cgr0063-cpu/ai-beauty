@@ -13,4 +13,7 @@ export interface SubscriptionProvider {
   purchase(planId: string): Promise<EntitlementStatus>;
   restorePurchases(): Promise<EntitlementStatus>;
   getEntitlementStatus(): Promise<EntitlementStatus>;
+  identifyUser(userId: string): Promise<void>;
+  clearUserIdentity(): Promise<void>;
+  subscribeEntitlementChanges(listener: (status: EntitlementStatus) => void): Promise<() => void>;
 }

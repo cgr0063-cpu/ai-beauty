@@ -1,7 +1,6 @@
-import { WeatherProvider, WeatherReading, DemoWeatherProvider } from "./WeatherProvider";
+import { WeatherProvider, WeatherReading } from "./WeatherProvider";
 import { seasonFromDate, WeatherCondition } from "@/data/context";
 
-const demo = new DemoWeatherProvider();
 
 /**
  * Open-Meteo (open-meteo.com) is a free, public weather API that requires
@@ -21,7 +20,7 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
     args: { regionCountryCode: string },
     coords?: { latitude: number; longitude: number }
   ): Promise<WeatherReading> {
-    if (!coords) return demo.getCurrentWeather(args);
+    if (!coords) throw new Error("weather_coordinates_required");
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 6000);
@@ -50,8 +49,11 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
         season: seasonFromDate(new Date()),
         source: "device-location",
       };
-    } catch {
-      return demo.getCurrentWeather(args);
+    } catch (error) {
+      // Never label a seasonal estimate as current live weather. Automatic
+      // weather either returns a verified Open-Meteo reading or becomes
+      // unavailable so Today's Look can continue without a weather claim.
+      throw error instanceof Error ? error : new Error("weather_fetch_failed");
     }
   }
 }

@@ -1,8 +1,8 @@
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect } from "react";
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Share, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Cloud, RefreshCw, Share2, Bookmark, BookmarkCheck } from "lucide-react-native";
 import { Card, Chip, SectionTitle, Badge } from "@/design-system/components/Primitives";
@@ -16,6 +16,9 @@ import { useTodaysLook } from "@/domain/useTodaysLook";
 import { MOODS } from "@/data/moods";
 import { PLAN_OPTIONS } from "@/data/plans";
 import { WEATHER_CONDITIONS } from "@/data/context";
+import { useMediaFlowStore } from "@/state/mediaFlowStore";
+import { persistUserPhoto } from "@/services/storage/photoLibrary";
+import { ensureAiPhotoConsent } from "@/services/privacy/photoConsent";
 
 function greetingKey(): "home.greetingMorning" | "home.greetingAfternoon" | "home.greetingEvening" {
   const h = new Date().getHours();
@@ -28,16 +31,16 @@ export default function HomeScreen() {
   const { theme } = useAppTheme();
   const { t } = useTranslation();
   const router = useRouter();
-  const params = useLocalSearchParams<{ startSelfie?: string; photoUri?: string }>();
   const name = useUserStore((s) => s.name);
-  const setSelfieUri = useUserStore((s) => s.setSelfieUri);
   const ctx = useTodayContextStore();
   const { look, loading, loadingLabel, error, generate, regenerate } = useTodaysLook();
   const saveLook = useSavedLooksStore((s) => s.saveLook);
   const savedCount = useSavedLooksStore((s) => s.saved.length);
   const isSaved = useSavedLooksStore((s) => (look ? s.isSaved(look.id) : false));
   const entitlementStatus = useEntitlementStore((s) => s.status);
-  const consumedPhotoParam = useRef<string | null>(null);
+  const pendingSelfieCapture = useMediaFlowStore((s) => s.pendingSelfieCapture);
+  const consumeSelfieCaptureRequest = useMediaFlowStore((s) => s.consumeSelfieCaptureRequest);
+  const beginEnhance = useMediaFlowStore((s) => s.beginEnhance);
 
   const onSave = () => {
     if (!look) return;
@@ -60,42 +63,47 @@ export default function HomeScreen() {
     }
   };
 
-  useEffect(() => {
+  // Generate only while Home is focused. This prevents Explore/Profile edits from
+  // silently spending a remote AI request in a mounted-but-hidden Home tab.
+  useFocusEffect(useCallback(() => {
+    // If onboarding just requested a selfie, do not spend an AI request on the
+    // pre-selfie state. The camera/enhancer flow returns to Home, which then
+    // generates with the newly adopted selfie.
+    if (pendingSelfieCapture) return;
     generate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctx.moodId, ctx.planId, ctx.styleId, ctx.weatherCondition]);
+  }, [generate, pendingSelfieCapture]));
 
   useEffect(() => {
-    if (params.startSelfie === "1") {
-      (async () => {
-        const perm = await ImagePicker.requestCameraPermissionsAsync();
-        if (!perm.granted) {
-          Alert.alert(t("errors.cameraPermission"));
-          return;
+    if (!pendingSelfieCapture) return;
+    (async () => {
+      if (!(await ensureAiPhotoConsent(t))) {
+        consumeSelfieCaptureRequest();
+        return;
+      }
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        consumeSelfieCaptureRequest();
+        Alert.alert(t("errors.cameraPermission"));
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        quality: 0.8,
+        cameraType: ImagePicker.CameraType.front,
+      });
+      if (!result.canceled && result.assets[0]) {
+        try {
+          const durableUri = await persistUserPhoto(result.assets[0].uri, "selfie", result.assets[0].mimeType);
+          beginEnhance(durableUri, "selfie", "selfie");
+          router.push("/camera/enhance");
+        } catch {
+          consumeSelfieCaptureRequest();
+          Alert.alert(t("errors.generic"));
         }
-        const result = await ImagePicker.launchCameraAsync({
-          quality: 0.8,
-          cameraType: ImagePicker.CameraType.front,
-        });
-        if (!result.canceled && result.assets[0]) {
-          router.push({
-            pathname: "/camera/enhance",
-            params: { photoUri: result.assets[0].uri, mode: "selfie", returnTo: "/(tabs)/home" },
-          });
-        }
-      })();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Picks up the (possibly enhanced) selfie handed back by /camera/enhance exactly once.
-  useEffect(() => {
-    if (params.photoUri && consumedPhotoParam.current !== params.photoUri) {
-      consumedPhotoParam.current = params.photoUri;
-      setSelfieUri(params.photoUri);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.photoUri]);
+      } else {
+        consumeSelfieCaptureRequest();
+      }
+    })();
+  }, [beginEnhance, consumeSelfieCaptureRequest, pendingSelfieCapture, router, t]);
 
   const weatherLabel = ctx.weatherCondition
     ? t(`weatherLabels.${ctx.weatherCondition}`, {
@@ -108,7 +116,7 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={{ color: theme.colors.textSecondary, fontSize: theme.typography.body }}>
           {t(greetingKey())}
-          {name ? `, ${name}` : ""} ☀️
+          {name ? `, ${name}` : ""}
         </Text>
 
         {/* Quick context chips — editing doesn't wipe other answers */}
@@ -222,10 +230,12 @@ export default function HomeScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Button
-                    label={t("common.save")}
-                    onPress={onSave}
+                    label={isSaved ? t("savedLooks.open") : t("common.save")}
+                    onPress={() => {
+                      if (isSaved) router.push("/(tabs)/saved");
+                      else onSave();
+                    }}
                     variant="secondary"
-                    disabled={isSaved}
                     icon={
                       isSaved ? (
                         <BookmarkCheck size={16} color={theme.colors.success} />

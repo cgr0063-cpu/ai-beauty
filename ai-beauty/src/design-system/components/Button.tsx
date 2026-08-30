@@ -76,7 +76,7 @@ export function Button({
             marginLeft: icon || loading ? 8 : 0,
           },
         ]}
-        numberOfLines={1}
+        numberOfLines={3}
       >
         {label}
       </Text>
@@ -85,7 +85,8 @@ export function Button({
 
   const commonProps = {
     accessibilityRole: "button" as const,
-    accessibilityState: { disabled: !!disabled || !!loading },
+    accessibilityState: { disabled: !!disabled || !!loading, busy: !!loading },
+    accessibilityLabel: label,
     accessibilityHint,
     onPress: handlePress,
     disabled: disabled || loading,
@@ -147,6 +148,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 20,
+    minHeight: 44,
   },
   contentRow: { flexDirection: "row", alignItems: "center" },
   label: { fontWeight: "600" },

@@ -9,7 +9,26 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "eslint . --ext .ts,.tsx",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "release:source-check": "node scripts/release-readiness.mjs",
+    "release:env-check": "node scripts/validate-production-env.mjs",
+    "release:rc-check": "node scripts/release-candidate-check.mjs",
+    "release:production-check": "npm run release:source-check && npm run release:rc-check && npm run release:prebuild-check && npm run release:p15-security-check && npm run release:p16-deployment-check && npm run release:p17-operations-check && npm run check:p18 && npm run check:p19 && npm run check:p20 && npm run check:p21 && npm run check:p22 && npm run check:p23 && npm run release:env-check && npm run release:signed-build-check && npm run check:p24 && npm run check:p25 && npm run check:p26",
+    "release:prebuild-check": "node scripts/prebuild-static-check.mjs",
+    "release:signed-build-check": "node scripts/signed-build-readiness.mjs",
+    "release:p15-security-check": "node scripts/p15-security-check.mjs",
+    "release:p16-deployment-check": "node scripts/p16-deployment-check.mjs",
+    "qa:android-device": "node scripts/android-device-smoke.mjs",
+    "release:p17-operations-check": "node scripts/p17-operations-check.mjs",
+    "check:p18": "node scripts/p18-p0-audit.mjs",
+    "check:p19": "node scripts/p19-privacy-notifications-check.mjs",
+    "check:p20": "node scripts/p20-store-mode-check.mjs",
+    "check:p21": "node scripts/p21-personalization-check.mjs",
+    "check:p22": "node scripts/p22-wardrobe-learning-check.mjs",
+    "check:p23": "node scripts/p23-fitcheck-journey-check.mjs",
+    "check:p24": "node scripts/p24-user-journey-check.mjs",
+    "check:p25": "node scripts/p25-accessibility-polish-check.mjs",
+    "check:p26": "node scripts/p26-final-regression-check.mjs"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "1.23.1",
@@ -51,7 +70,8 @@
     "react-native-svg": "15.2.0",
     "react-native-view-shot": "3.8.0",
     "react-native-web": "~0.19.10",
-    "zustand": "^4.5.2"
+    "zustand": "^4.5.2",
+    "expo-clipboard": "~6.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",

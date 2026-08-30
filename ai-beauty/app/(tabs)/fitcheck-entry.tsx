@@ -8,24 +8,33 @@ import { Camera as CameraIcon, Upload, Wand2 } from "lucide-react-native";
 import { Card, SectionTitle } from "@/design-system/components/Primitives";
 import { Button } from "@/design-system/components/Button";
 import { useAppTheme } from "@/design-system/ThemeProvider";
+import { useMediaFlowStore } from "@/state/mediaFlowStore";
+import { useUserStore } from "@/state/userStore";
+import { deletePersistedPhoto, persistUserPhoto } from "@/services/storage/photoLibrary";
+import { ensureAiPhotoConsent } from "@/services/privacy/photoConsent";
 
 export default function FitCheckEntryScreen() {
   const { theme } = useAppTheme();
   const { t } = useTranslation();
   const router = useRouter();
+  const setFitCheckPhotoUri = useMediaFlowStore((s) => s.setFitCheckPhotoUri);
+  const setFullBodyPhotoUri = useUserStore((s) => s.setFullBodyPhotoUri);
 
-  const goToEnhance = (uri: string) => {
-    router.push({
-      pathname: "/camera/enhance",
-      params: { photoUri: uri, mode: "photo", returnTo: "/fitcheck" },
-    });
-  };
-
-  const goStraightToFitCheck = (uri: string) => {
-    router.push({ pathname: "/fitcheck", params: { photoUri: uri } });
+  const goStraightToFitCheck = async (uri: string, mimeType?: string | null) => {
+    try {
+      const previous = useUserStore.getState().fullBodyPhotoUri;
+      const durableUri = await persistUserPhoto(uri, "fitcheck", mimeType);
+      setFitCheckPhotoUri(durableUri);
+      setFullBodyPhotoUri(durableUri);
+      if (previous && previous !== durableUri) await deletePersistedPhoto(previous).catch(() => {});
+      router.push("/fitcheck");
+    } catch {
+      Alert.alert(t("errors.generic"));
+    }
   };
 
   const pickFromLibrary = async () => {
+    if (!(await ensureAiPhotoConsent(t))) return;
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       Alert.alert(t("errors.photoPermission"));
@@ -37,11 +46,12 @@ export default function FitCheckEntryScreen() {
       allowsEditing: false,
     });
     if (!result.canceled && result.assets[0]) {
-      goStraightToFitCheck(result.assets[0].uri);
+      await goStraightToFitCheck(result.assets[0].uri, result.assets[0].mimeType);
     }
   };
 
   const takePhoto = async () => {
+    if (!(await ensureAiPhotoConsent(t))) return;
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
       Alert.alert(t("errors.cameraPermission"));
@@ -49,7 +59,8 @@ export default function FitCheckEntryScreen() {
     }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
     if (!result.canceled && result.assets[0]) {
-      goToEnhance(result.assets[0].uri);
+      // Fit Check must analyze the original frame, not a beauty-filtered/cropped preview.
+      await goStraightToFitCheck(result.assets[0].uri, result.assets[0].mimeType);
     }
   };
 

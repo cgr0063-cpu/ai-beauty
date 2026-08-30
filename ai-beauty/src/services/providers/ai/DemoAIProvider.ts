@@ -1,4 +1,4 @@
-import { AIProvider, FitCheckInput, FitCheckResult, GeneratedLook, LookRequestInput } from "./AIProvider";
+import { AIProvider, ClosetItemAnalysis, FitCheckInput, FitCheckResult, GeneratedLook, LookRequestInput } from "./AIProvider";
 import { buildTodaysLook, regenerateWithDirection } from "@/domain/lookEngine";
 import { evaluateFitCheck } from "@/domain/fitCheckEngine";
 
@@ -23,6 +23,14 @@ export class DemoAIProvider implements AIProvider {
   ): Promise<GeneratedLook> {
     await delay(700);
     return regenerateWithDirection(input, direction);
+  }
+
+  async analyzeClosetItem(_photoUri: string, _languageCode: string): Promise<ClosetItemAnalysis> {
+    throw new Error("closet_visual_analysis_requires_remote_ai");
+  }
+
+  async analyzeStoreProduct(_photoUri: string, _languageCode: string): Promise<ClosetItemAnalysis> {
+    throw new Error("store_visual_analysis_requires_remote_ai");
   }
 
   async analyzeFitCheck(input: FitCheckInput): Promise<FitCheckResult> {
