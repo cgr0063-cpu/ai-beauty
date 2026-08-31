@@ -65,6 +65,7 @@
     ],
     "extra": {
       "eas": {}
-    }
+    },
+    "owner": "cgrkrds-team"
   }
 }
