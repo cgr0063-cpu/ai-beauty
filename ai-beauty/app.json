@@ -64,7 +64,9 @@
       "expo-notifications"
     ],
     "extra": {
-      "eas": {}
+      "eas": {
+        "projectId": "e73fe7a7-6a61-472a-96d3-f88468b3339a"
+      }
     },
     "owner": "cgrkrds-team"
   }
