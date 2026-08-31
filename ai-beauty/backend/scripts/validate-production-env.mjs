@@ -11,7 +11,7 @@ const required = (key, test, hint) => {
 if ((env.NODE_ENV || '').trim() !== 'production') errors.push('NODE_ENV must be production');
 required('DB_DRIVER', v => v === 'postgres', 'production requires postgres');
 required('DATABASE_URL', v => /^postgres(?:ql)?:\/\//i.test(v), 'use a managed PostgreSQL connection string');
-required('ANTHROPIC_API_KEY', v => v.length >= 20, 'server-side AI key required');
+required('GEMINI_API_KEY', v => v.length >= 20, 'server-side AI key required');
 required('JWT_SECRET', v => v.length >= 32, 'use a random secret of at least 32 characters');
 required('GOOGLE_IOS_CLIENT_ID', v => v.endsWith('.apps.googleusercontent.com'));
 required('GOOGLE_ANDROID_CLIENT_ID', v => v.endsWith('.apps.googleusercontent.com'));

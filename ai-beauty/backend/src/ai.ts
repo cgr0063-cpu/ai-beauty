@@ -1,13 +1,12 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { generatedLookSchema, fitCheckResultSchema, closetItemResultSchema } from "./validation.js";
 
-const apiKey = process.env.ANTHROPIC_API_KEY;
+const apiKey = process.env.GEMINI_API_KEY;
 
 export function isAIConfigured(): boolean {
   return !!apiKey;
 }
 
-const client = apiKey ? new Anthropic({ apiKey }) : null;
+const model = (process.env.GEMINI_MODEL || "gemini-2.5-flash-lite").trim();
 
 /**
  * Mirrors the priority order encoded in the mobile client's offline
@@ -78,28 +77,80 @@ export interface LookGenerationRequest {
   variationSeed: number;
 }
 
-async function callClaudeForJSON(systemPrompt: string, userPrompt: string, image?: { imageBase64: string; mediaType: string }): Promise<any> {
-  if (!client) throw new Error("ANTHROPIC_API_KEY not configured");
-  const msg = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 1200,
-    system: systemPrompt,
-    messages: [{ role: "user", content: image ? [
-      { type: "image", source: { type: "base64", media_type: image.mediaType as any, data: image.imageBase64 } },
-      { type: "text", text: userPrompt },
-    ] : userPrompt }],
-  });
-  const text = msg.content
-    .map((b) => (b.type === "text" ? b.text : ""))
+async function callGeminiForJSON(
+  systemPrompt: string,
+  userPrompt: string,
+  image?: { imageBase64: string; mediaType: string },
+  maxOutputTokens = 1200
+): Promise<any> {
+  if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
+
+  const parts: any[] = [];
+
+  if (image) {
+    parts.push({
+      inlineData: {
+        mimeType: image.mediaType,
+        data: image.imageBase64,
+      },
+    });
+  }
+
+  parts.push({ text: userPrompt });
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: systemPrompt }],
+        },
+        contents: [
+          {
+            role: "user",
+            parts,
+          },
+        ],
+        generationConfig: {
+          responseMimeType: "application/json",
+          maxOutputTokens,
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `Gemini API request failed (${response.status}): ${body.slice(0, 500)}`
+    );
+  }
+
+  const payload: any = await response.json();
+
+  const text = (payload?.candidates?.[0]?.content?.parts || [])
+    .map((part: any) =>
+      typeof part?.text === "string" ? part.text : ""
+    )
     .join("")
     .trim()
     .replace(/^```json\s*/i, "")
     .replace(/```\s*$/i, "");
+
+  if (!text) {
+    throw new Error("Gemini API returned no text content");
+  }
+
   return JSON.parse(text);
 }
 
 export async function generateLook(input: LookGenerationRequest, selfie?: { imageBase64: string; mediaType: string }) {
-  const result = await callClaudeForJSON(LOOK_SYSTEM_PROMPT, JSON.stringify(input), selfie);
+  const result = await callGeminiForJSON(LOOK_SYSTEM_PROMPT, JSON.stringify(input), selfie);
   const parsed = generatedLookSchema.parse(result);
   return { ...parsed, id: parsed.id ?? `look_${Date.now()}` };
 }
@@ -110,7 +161,7 @@ export async function regenerateLook(
   selfie?: { imageBase64: string; mediaType: string }
 ) {
   const prompt = JSON.stringify({ ...input, requestedAdjustment: direction });
-  const result = await callClaudeForJSON(LOOK_SYSTEM_PROMPT, prompt, selfie);
+  const result = await callGeminiForJSON(LOOK_SYSTEM_PROMPT, prompt, selfie);
   const parsed = generatedLookSchema.parse(result);
   return { ...parsed, id: parsed.id ?? `look_${Date.now()}_${direction}` };
 }
@@ -156,42 +207,24 @@ export async function analyzeFitCheck(input: {
   closetItemLabels: string[];
   languageCode: string;
 }) {
-  if (!client) throw new Error("ANTHROPIC_API_KEY not configured");
-  const msg = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 900,
-    system: FIT_CHECK_SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: { type: "base64", media_type: input.mediaType as any, data: input.imageBase64 },
-          },
-          {
-            type: "text",
-            text: JSON.stringify({
-              planId: input.planId,
-              styleId: input.styleId,
-              weatherCondition: input.weatherCondition,
-              closetItemLabels: input.closetItemLabels,
-              languageCode: input.languageCode,
-            }),
-          },
-        ],
-      },
-    ],
-  });
-  const text = msg.content
-    .map((b) => (b.type === "text" ? b.text : ""))
-    .join("")
-    .trim()
-    .replace(/^```json\s*/i, "")
-    .replace(/```\s*$/i, "");
-  return fitCheckResultSchema.parse(JSON.parse(text));
-}
+  const result = await callGeminiForJSON(
+    FIT_CHECK_SYSTEM_PROMPT,
+    JSON.stringify({
+      planId: input.planId,
+      styleId: input.styleId,
+      weatherCondition: input.weatherCondition,
+      closetItemLabels: input.closetItemLabels,
+      languageCode: input.languageCode,
+    }),
+    {
+      imageBase64: input.imageBase64,
+      mediaType: input.mediaType,
+    },
+    900
+  );
 
+  return fitCheckResultSchema.parse(result);
+}
 
 const CLOSET_ITEM_SYSTEM_PROMPT = `You classify one clothing/accessory photo for a wardrobe assistant.
 Describe only the visible item. Do not infer the person's identity, body, health, ethnicity, age, gender or attractiveness.
@@ -206,7 +239,7 @@ Write label, color and styleTags in the requested language where natural. Return
 }`;
 
 export async function analyzeClosetItem(input: { imageBase64: string; mediaType: string; languageCode: string }) {
-  const result = await callClaudeForJSON(
+  const result = await callGeminiForJSON(
     CLOSET_ITEM_SYSTEM_PROMPT,
     JSON.stringify({ languageCode: input.languageCode }),
     { imageBase64: input.imageBase64, mediaType: input.mediaType }

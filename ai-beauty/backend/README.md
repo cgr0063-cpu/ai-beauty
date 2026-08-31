@@ -11,7 +11,7 @@ and Fit Check photo analysis — not a stub.
 cd backend
 npm install
 cp .env.example .env
-# fill in ANTHROPIC_API_KEY and JWT_SECRET in .env
+# fill in GEMINI_API_KEY and JWT_SECRET in .env
 npm run dev
 ```
 
@@ -26,7 +26,7 @@ physical device via Expo Go, e.g. `http://192.168.1.20:8787`).
 
 ## Endpoints
 
-- `GET /v1/health` — liveness check, also reports whether `ANTHROPIC_API_KEY` is set
+- `GET /v1/health` — liveness check, also reports whether `GEMINI_API_KEY` is set
 - `POST /v1/looks/generate` — real Claude call, returns `GeneratedLook` JSON
 - `POST /v1/looks/regenerate` — same, with a requested adjustment direction
 - `POST /v1/fit-check/analyze` — multipart photo upload, real vision call,

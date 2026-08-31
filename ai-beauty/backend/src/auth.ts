@@ -8,7 +8,7 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 import { getDb } from "./db.js";
 import { rateLimit } from "./security.js";
 
-const JWT_SECRET = process.env.JWT_SECRET?.trim();
+const JWT_SECRET = process.env.JWT_SECRET?.trim() || "";
 if (!JWT_SECRET || JWT_SECRET.length < 32) throw new Error("JWT_SECRET must be configured with at least 32 characters");
 
 const googleAudiences = [process.env.GOOGLE_IOS_CLIENT_ID, process.env.GOOGLE_ANDROID_CLIENT_ID, process.env.GOOGLE_WEB_CLIENT_ID].filter(Boolean) as string[];
