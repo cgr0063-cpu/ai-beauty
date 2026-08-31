@@ -71,6 +71,15 @@
             "buildToolsVersion": "35.0.0"
           }
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#150912",
+          "image": "./assets/icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain"
+        }
       ]
     ],
     "extra": {
