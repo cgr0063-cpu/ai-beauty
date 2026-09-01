@@ -3,7 +3,7 @@
     "name": "AI Beauty",
     "slug": "ai-beauty",
     "scheme": "aibeauty",
-    "version": "0.9.0",
+    "version": "0.9.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -26,7 +26,7 @@
         "ACCESS_FINE_LOCATION",
         "POST_NOTIFICATIONS"
       ],
-      "versionCode": 1
+      "versionCode": 3
     },
     "ios": {
       "bundleIdentifier": "com.cgrkrd.aibeauty",
