@@ -64,76 +64,22 @@ function InnerLayout() {
     return () => sub.remove();
   }, [hydrated, router]);
 
-  useEffect(() => {
-    if (!hydrated) return;
-    let unsubscribeEntitlements: (() => void) | undefined;
-    const refreshEntitlement = async () => {
-      try {
-        const provider = getSubscriptionProvider();
-        setEntitlementStatus(await provider.getEntitlementStatus());
-      } catch {
-        // Production must fail closed: a billing/network/configuration failure
-        // never preserves or grants a cached Plus entitlement.
-        setEntitlementStatus("free");
-      }
-    };
+useEffect(() => {
+  if (!hydrated) return;
 
-    reconcilePersistedSession().catch(() => {});
-    refreshEntitlement().catch(() => {});
-    refreshInactivity();
-    try {
-      getSubscriptionProvider().subscribeEntitlementChanges(setEntitlementStatus)
-        .then((unsubscribe) => { unsubscribeEntitlements = unsubscribe; })
-        .catch(() => {});
-    } catch {}
+  reconcilePersistedSession().catch(() => {});
+  refreshInactivity();
 
-    const appState = AppState.addEventListener("change", (state) => {
-      if (state === "active") {
-        reconcilePersistedSession().catch(() => {});
-        refreshEntitlement().catch(() => {});
-        refreshInactivity();
-      }
-    });
+  const appState = AppState.addEventListener("change", (state) => {
+    if (state === "active") {
+      reconcilePersistedSession().catch(() => {});
+      refreshInactivity();
+    }
+  });
 
-    SplashScreen.hideAsync().catch(() => {});
-    return () => {
-      appState.remove();
-      unsubscribeEntitlements?.();
-    };
-  }, [hydrated, setEntitlementStatus]);
+  SplashScreen.hideAsync().catch(() => {});
 
-  if (!hydrated) return null;
-
-  return (
-    <>
-      <StatusBar style={theme.isDark ? "light" : "dark"} />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: theme.colors.background },
-          animation: reducedMotion ? "none" : "slide_from_right",
-        }}
-      >
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="(onboarding)" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="fitcheck" />
-        <Stack.Screen name="camera" />
-        <Stack.Screen name="subscription" />
-        <Stack.Screen name="runway" />
-      </Stack>
-    </>
-  );
-}
-
-export default function RootLayout() {
-  return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <ThemeProvider>
-          <InnerLayout />
-        </ThemeProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
-  );
-}
+  return () => {
+    appState.remove();
+  };
+}, [hydrated]);
