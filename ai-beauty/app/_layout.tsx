@@ -10,7 +10,7 @@ import { ThemeProvider, useAppTheme } from "@/design-system/ThemeProvider";
 import { useSettingsStore } from "@/state/settingsStore";
 import i18n, { setAppLanguage } from "@/i18n";
 import { arePersistedStoresHydrated, subscribeToHydration } from "@/services/appHydration";
-import { reconcilePersistedSession } from "@/services/sessionLifecycle";
+
 import { useUserStore } from "@/state/userStore";
 import * as Notifications from "expo-notifications";
 import { refreshInactivityReminder } from "@/services/notifications";
@@ -65,12 +65,12 @@ function InnerLayout() {
 useEffect(() => {
   if (!hydrated) return;
 
-  reconcilePersistedSession().catch(() => {});
+  
   refreshInactivity();
 
   const appState = AppState.addEventListener("change", (state) => {
     if (state === "active") {
-      reconcilePersistedSession().catch(() => {});
+      
       refreshInactivity();
     }
   });
