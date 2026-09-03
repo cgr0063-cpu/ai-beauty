@@ -26,7 +26,7 @@
         "ACCESS_FINE_LOCATION",
         "POST_NOTIFICATIONS"
       ],
-      "versionCode": 5,
+      "versionCode": 7,
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.READ_EXTERNAL_STORAGE",
