@@ -83,3 +83,38 @@ useEffect(() => {
     appState.remove();
   };
 }, [hydrated]);
+  if (!hydrated) return null;
+
+  return (
+    <>
+      <StatusBar style={theme.isDark ? "light" : "dark"} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: theme.colors.background },
+          animation: reducedMotion ? "none" : "slide_from_right",
+        }}
+      >
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(onboarding)" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="fitcheck" />
+        <Stack.Screen name="camera" />
+        <Stack.Screen name="subscription" />
+        <Stack.Screen name="runway" />
+      </Stack>
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <InnerLayout />
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
