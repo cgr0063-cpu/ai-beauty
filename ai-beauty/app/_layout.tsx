@@ -7,8 +7,6 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
 import { ThemeProvider, useAppTheme } from "@/design-system/ThemeProvider";
-import { getSubscriptionProvider } from "@/services/providers/subscription";
-import { useEntitlementStore } from "@/state/entitlementStore";
 import { useSettingsStore } from "@/state/settingsStore";
 import i18n, { setAppLanguage } from "@/i18n";
 import { arePersistedStoresHydrated, subscribeToHydration } from "@/services/appHydration";
