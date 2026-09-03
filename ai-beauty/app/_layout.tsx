@@ -19,7 +19,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function InnerLayout() {
   const { theme, reducedMotion } = useAppTheme();
-  const setEntitlementStatus = useEntitlementStore((s) => s.setStatus);
+  
   const language = useSettingsStore((s) => s.language);
   const [hydrated, setHydrated] = useState(arePersistedStoresHydrated());
   const router = useRouter();
