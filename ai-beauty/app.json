@@ -35,7 +35,17 @@
       },
       "buildNumber": "1"
     },
-    "plugins": [],
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#150912",
+          "image": "./assets/icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain"
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "e73fe7a7-6a61-472a-96d3-f88468b3339a"
