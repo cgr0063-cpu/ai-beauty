@@ -19,19 +19,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#150912"
       },
-      "permissions": [
-        "CAMERA",
-        "RECORD_AUDIO",
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "POST_NOTIFICATIONS"
-      ],
-      "versionCode": 20,
-      "blockedPermissions": [
-        "android.permission.SYSTEM_ALERT_WINDOW",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
-      ]
+      "permissions": [],
+      "versionCode": 20
     },
     "ios": {
       "bundleIdentifier": "com.cgrkrd.aibeauty",
@@ -46,47 +35,7 @@
       },
       "buildNumber": "1"
     },
-    "plugins": [
-      "expo-router",
-      "expo-camera",
-      "expo-location",
-      "expo-secure-store",
-      "expo-apple-authentication",
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "AI Beauty needs photo access to let you pick or save look photos."
-        }
-      ],
-      [
-        "expo-media-library",
-        {
-          "photosPermission": "AI Beauty needs photo access to let you pick or save look photos.",
-          "savePhotosPermission": "AI Beauty saves your enhanced photos to your library when you tap Save.",
-          "isAccessMediaLocationEnabled": false
-        }
-      ],
-      "expo-notifications",
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "compileSdkVersion": 36,
-            "targetSdkVersion": 36,
-            "buildToolsVersion": "36.0.0"
-          }
-        }
-      ],
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#150912",
-          "image": "./assets/icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain"
-        }
-      ]
-    ],
+    "plugins": [],
     "extra": {
       "eas": {
         "projectId": "e73fe7a7-6a61-472a-96d3-f88468b3339a"
