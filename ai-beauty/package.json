@@ -2,7 +2,7 @@
   "name": "ai-beauty",
   "version": "0.1.0",
   "private": true,
-  "main": "expo-router/entry",
+  "main": "diagnostic-entry.js",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
