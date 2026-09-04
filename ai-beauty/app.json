@@ -92,6 +92,7 @@
         "projectId": "e73fe7a7-6a61-472a-96d3-f88468b3339a"
       }
     },
-    "owner": "cgrkrds-team"
+    "owner": "cgrkrds-team",
+    "newArchEnabled": false
   }
 }
