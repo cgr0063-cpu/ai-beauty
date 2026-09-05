@@ -7,6 +7,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      EXPO_PUBLIC_API_BASE_URL: https://ai-beauty-9msu.onrender.com
+      EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: 1070221768961-be8hng16458sbskdakvstnsr959ttccq.apps.googleusercontent.com
+      EXPO_PUBLIC_REVENUECAT_ANDROID_KEY: goog_AQMFMsnJHOYtnFwsrbKifzBQYwi
+      EAS_PROJECT_ID: e73fe7a7-6a61-472a-96d3-f88468b3339a
 
     defaults:
       run:

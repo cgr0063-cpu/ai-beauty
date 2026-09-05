@@ -180,7 +180,7 @@ export default function FitCheckResultScreen() {
               </Card>
             )}
 
-            {result.confidence !== "low" && result.outcome === "adjust" && result.tailorAdvice && (
+            {result.confidence !== "low" && result.tailorAdvice && (
               <View style={{ marginTop: 12 }}>
                 <Button
                   label={t("tailor.title")}

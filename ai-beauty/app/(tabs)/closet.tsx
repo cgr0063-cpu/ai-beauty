@@ -51,8 +51,32 @@ export default function ClosetScreen() {
       const analysis = await getAIProvider().analyzeClosetItem(durableUri, i18n.language || "en");
       addItem({ photoUri: durableUri, category: analysis.category, label: analysis.label, color: analysis.color ?? undefined, brand: undefined, styleTags: analysis.styleTags });
     } catch {
-      if (durableUri) await deletePersistedPhoto(durableUri);
-      Alert.alert(t("closet.analysisFailed"));
+      if (durableUri) {
+        const fallbackLabel =
+          i18n.language?.startsWith("tr") ? "Yeni parça" :
+          i18n.language?.startsWith("ru") ? "Новая вещь" :
+          "New item";
+
+        addItem({
+          photoUri: durableUri,
+          category: "other",
+          label: fallbackLabel,
+          color: undefined,
+          brand: undefined,
+          styleTags: [],
+        });
+
+        Alert.alert(
+          t("closet.analysisFailed"),
+          i18n.language?.startsWith("tr")
+            ? "Fotoğraf gardırobuna eklendi. Bilgileri düzenleyebilirsin."
+            : i18n.language?.startsWith("ru")
+              ? "Фото добавлено в гардероб. Данные можно изменить вручную."
+              : "The photo was added to your wardrobe. You can edit the details manually."
+        );
+      } else {
+        Alert.alert(t("closet.analysisFailed"));
+      }
     } finally { setAdding(false); }
   };
 

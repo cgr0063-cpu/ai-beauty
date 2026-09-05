@@ -53,10 +53,24 @@ export async function fetchWeeklyTrends(region: string): Promise<TrendSnapshot> 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TREND_TIMEOUT_MS);
   try {
-    const sep = upstream.includes("?") ? "&" : "?";
-    const response = await fetch(`${upstream}${sep}region=${encodeURIComponent(normalizedRegion)}`, {
+    const apiKey = process.env.TRENDS_API_KEY?.trim();
+    if (!apiKey) throw new Error("trends_api_key_not_configured");
+
+    const response = await fetch(upstream, {
+      method: "POST",
       signal: controller.signal,
-      headers: { accept: "application/json", "user-agent": "AIBeauty-TrendProxy/1.0" },
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        authorization: `Bearer ${apiKey}`,
+        "user-agent": "AIBeauty-TrendProxy/1.0",
+      },
+      body: JSON.stringify({
+        mode: "Get Growth",
+        source: "google search",
+        keyword: `fashion beauty trends ${normalizedRegion}`,
+        window: ["1M"],
+      }),
     });
     if (!response.ok) throw new Error(`trend_source_${response.status}`);
     const value = normalize(await response.json(), normalizedRegion, upstream);
