@@ -1,0 +1,34 @@
+import fs from 'node:fs';
+const issues=[];
+const read=p=>fs.readFileSync(p,'utf8');
+const home=read('app/(tabs)/home.tsx');
+const finish=read('app/(onboarding)/finish.tsx');
+const media=read('src/state/mediaFlowStore.ts');
+const saved=read('app/(tabs)/saved.tsx');
+const legacySaved=read('app/saved.tsx');
+const legacySavedLooks=read('app/saved-looks.tsx');
+const store=read('app/(tabs)/explore/store.tsx');
+const fitEntry=read('app/(tabs)/fitcheck-entry.tsx');
+const tabs=read('app/(tabs)/_layout.tsx');
+const root=read('app/_layout.tsx');
+const pkg=JSON.parse(read('package.json'));
+
+if(!/requestSelfieCapture\(\).*finishTo\("\/\(tabs\)\/home"\)/s.test(finish)) issues.push('onboarding selfie CTA does not hand off to Home');
+if(!/if \(pendingSelfieCapture\) return;\s*generate\(\)/s.test(home)) issues.push('Home can generate before onboarding selfie flow finishes');
+if(!/clearEnhance: \(\) => set\(\{ pendingSelfieCapture: false/.test(media)) issues.push('enhancer completion does not close pending selfie flow');
+if(!/if \(isSaved\) router\.push\("\/\(tabs\)\/saved"\)/.test(home)) issues.push('saved Today Look has no direct path to Saved Looks');
+if(!/router\.canGoBack\(\).*router\.replace\("\/\(tabs\)\/home"\)/s.test(saved)) issues.push('Saved Looks back action can dead-end without navigation history');
+if(!/savedLooks\.createLook/.test(saved)) issues.push('empty Saved Looks has no create-look recovery CTA');
+if(!/<Redirect href="\/\(tabs\)\/saved"/.test(legacySaved) || !/<Redirect href="\/\(tabs\)\/saved"/.test(legacySavedLooks)) issues.push('legacy Saved Looks routes are duplicate/stale implementations');
+if(!/requestMediaLibraryPermissionsAsync/.test(store) || !/errors\.photoPermission/.test(store)) issues.push('Store Mode photo picker lacks explicit permission denial UX');
+if(!/ensureAiPhotoConsent/.test(fitEntry)) issues.push('Fit Check entry does not gate AI photo analysis on consent');
+for (const name of ['home','explore','closet','fitcheck-entry','profile']) if(!new RegExp(`name="${name}"`).test(tabs)) issues.push(`main tab missing: ${name}`);
+if(!/onboardingCompleted/.test(root) || !/router\.replace\(onboardingStarted/.test(root)) issues.push('root onboarding/deep-link guard missing');
+const chain=pkg.scripts?.['release:production-check']||'';
+if(!chain.includes('check:p18')) issues.push('production release chain accidentally skips P18');
+if(!chain.includes('check:p24')) issues.push('production release chain does not include P24 user-journey gate');
+
+console.log('AI Beauty P24 user journey gate');
+console.log(`blocking_p24_issues=${issues.length}`);
+for(const x of issues) console.error(`BLOCKER: ${x}`);
+process.exitCode=issues.length?2:0;
