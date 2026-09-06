@@ -20,23 +20,57 @@ function cleanString(v: unknown, max: number) {
 }
 
 function normalize(raw: any, region: string, sourceUrl: string): TrendSnapshot | null {
-  const source = cleanString(raw?.source, 120);
-  if (!source || !Array.isArray(raw?.items)) return null;
-  const items = raw.items
-    .filter((x: any) => x && CATEGORIES.has(x.category) && cleanString(x.label, 160))
-    .slice(0, TREND_MAX_ITEMS)
-    .map((x: any) => ({
-      category: x.category,
-      label: cleanString(x.label, 160),
-      ...(cleanString(x.notes, 500) ? { notes: cleanString(x.notes, 500) } : {}),
-    }));
-  if (!items.length) return null;
-  const publishedAt = cleanString(raw?.publishedAt, 80);
-  if (publishedAt && Number.isNaN(Date.parse(publishedAt))) return null;
+  const directSource = cleanString(raw?.source, 120);
+  if (directSource && Array.isArray(raw?.items)) {
+    const items = raw.items
+      .filter((x: any) => x && CATEGORIES.has(x.category) && cleanString(x.label, 160))
+      .slice(0, TREND_MAX_ITEMS)
+      .map((x: any) => ({
+        category: x.category,
+        label: cleanString(x.label, 160),
+        ...(cleanString(x.notes, 500) ? { notes: cleanString(x.notes, 500) } : {}),
+      }));
+    if (!items.length) return null;
+    const publishedAt = cleanString(raw?.publishedAt, 80);
+    if (publishedAt && Number.isNaN(Date.parse(publishedAt))) return null;
+    return {
+      source: directSource,
+      sourceUrl: cleanString(raw?.sourceUrl, 500) || sourceUrl,
+      ...(publishedAt ? { publishedAt } : {}),
+      fetchedAt: new Date().toISOString(),
+      region,
+      items,
+    };
+  }
+
+  const body = typeof raw?.body === "string" ? (() => {
+    try { return JSON.parse(raw.body); } catch { return null; }
+  })() : raw;
+
+  const results = Array.isArray(body?.results) ? body.results : [];
+  if (!results.length) return null;
+
+  const items: TrendItem[] = results.slice(0, TREND_MAX_ITEMS).map((r: any) => {
+    const keyword = cleanString(body?.search_term, 120) || "fashion beauty trends";
+    const direction = cleanString(r?.direction, 40);
+    const growth = r?.growth;
+    const recentValue = r?.recent_value;
+    const notes = [
+      direction ? `direction: ${direction}` : "",
+      typeof growth === "number" ? `growth: ${growth}` : "",
+      typeof recentValue === "number" ? `recent: ${recentValue}` : "",
+    ].filter(Boolean).join(", ");
+
+    return {
+      category: "seasonal",
+      label: keyword,
+      ...(notes ? { notes } : {}),
+    };
+  });
+
   return {
-    source,
-    sourceUrl: cleanString(raw?.sourceUrl, 500) || sourceUrl,
-    ...(publishedAt ? { publishedAt } : {}),
+    source: cleanString(body?.data_source, 120) || "TrendsAPI",
+    sourceUrl,
     fetchedAt: new Date().toISOString(),
     region,
     items,
