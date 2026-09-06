@@ -44,7 +44,7 @@ function normalize(raw: any, region: string, sourceUrl: string): TrendSnapshot |
 }
 
 export async function fetchWeeklyTrends(region: string): Promise<TrendSnapshot> {
-  const upstream = process.env.TREND_SOURCE_URL?.trim();
+  const upstream = process.env.TREND_SOURCE_URL?.trim() || "https://api.trendsapi.ai/api";
   if (!upstream || !/^https:\/\//i.test(upstream)) throw new Error("trend_source_not_configured");
   const normalizedRegion = cleanString(region, 32) || "global";
   const key = `${upstream}|${normalizedRegion}`;
@@ -53,7 +53,7 @@ export async function fetchWeeklyTrends(region: string): Promise<TrendSnapshot> 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TREND_TIMEOUT_MS);
   try {
-    const apiKey = process.env.TRENDS_API_KEY?.trim();
+    const apiKey = process.env.TRENDSAPI_KEY?.trim();
     if (!apiKey) throw new Error("trends_api_key_not_configured");
 
     const response = await fetch(upstream, {
@@ -66,7 +66,7 @@ export async function fetchWeeklyTrends(region: string): Promise<TrendSnapshot> 
         "user-agent": "AIBeauty-TrendProxy/1.0",
       },
       body: JSON.stringify({
-        mode: "Get Growth",
+        mode: "get_growth",
         source: "google search",
         keyword: `fashion beauty trends ${normalizedRegion}`,
         window: ["1M"],
