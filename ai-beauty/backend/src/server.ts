@@ -129,7 +129,7 @@ app.get("/v1/health/ready", async (_req, res) => {
   try {
     const db = await getDb();
     await db.ping();
-    res.json({ ok: true, aiConfigured: isAIConfigured() && !DISABLE_AI, trendsConfigured: /^https:\/\//i.test(process.env.TREND_SOURCE_URL?.trim() || "") && !DISABLE_TRENDS, maintenance: MAINTENANCE_MODE, releaseId: RELEASE_ID });
+    res.json({ ok: true, aiConfigured: isAIConfigured() && !DISABLE_AI, trendsConfigured: /^https:\/\//i.test(process.env.TREND_SOURCE_URL?.trim() || "https://api.trendsapi.ai/api") && !!process.env.TRENDSAPI_KEY?.trim() && !DISABLE_TRENDS, maintenance: MAINTENANCE_MODE, releaseId: RELEASE_ID });
   } catch (error) {
     logError("readiness_failed", error, { requestId: res.locals.requestId });
     res.status(503).json({ ok: false, error: "not_ready" });
@@ -139,7 +139,7 @@ app.get("/v1/health", async (_req, res) => {
   try {
     const db = await getDb();
     await db.ping();
-    res.json({ ok: true, aiConfigured: isAIConfigured() && !DISABLE_AI, trendsConfigured: /^https:\/\//i.test(process.env.TREND_SOURCE_URL?.trim() || "") && !DISABLE_TRENDS, maintenance: MAINTENANCE_MODE, releaseId: RELEASE_ID });
+    res.json({ ok: true, aiConfigured: isAIConfigured() && !DISABLE_AI, trendsConfigured: /^https:\/\//i.test(process.env.TREND_SOURCE_URL?.trim() || "https://api.trendsapi.ai/api") && !!process.env.TRENDSAPI_KEY?.trim() && !DISABLE_TRENDS, maintenance: MAINTENANCE_MODE, releaseId: RELEASE_ID });
   } catch { res.status(503).json({ ok: false }); }
 });
 
