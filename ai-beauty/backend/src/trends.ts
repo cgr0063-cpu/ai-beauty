@@ -1,6 +1,6 @@
 const TREND_MAX_ITEMS = 30;
 const TREND_CACHE_MS = 7 * 24 * 60 * 60 * 1000;
-const TREND_TIMEOUT_MS = 7000;
+const TREND_TIMEOUT_MS = 20000;
 const CATEGORIES = new Set(["color","clothing","shoes","accessory","makeup","hair","seasonal"]);
 const TREND_QUERIES = { color: "fashion color trends", clothing: "womens clothing trends", shoes: "womens shoe trends", accessory: "fashion accessory trends", makeup: "makeup trends", hair: "hair trends", seasonal: "seasonal fashion trends" } as const;
 
