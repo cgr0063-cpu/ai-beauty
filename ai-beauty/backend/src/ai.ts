@@ -192,7 +192,7 @@ console.log(JSON.stringify({
 }));
       if (!response.ok) {
         const body = await response.text();
-        const retryable = [429, 500, 502, 503, 504].includes(response.status);
+        const retryable = [500, 502, 503, 504].includes(response.status);
 
         if (retryable && attempt < maxAttempts) {
           await new Promise((resolve) => setTimeout(resolve, 1200 * attempt));
@@ -232,15 +232,23 @@ try {
   throw error;
 
       }
-    } catch (error) {
-      if (attempt < maxAttempts) {
-        await new Promise((resolve) => setTimeout(resolve, 1200 * attempt));
-        continue;
-      }
-
-      throw error;
-    }
+  } catch (error) {
+  if (
+    error instanceof Error &&
+    error.message.includes("Gemini API request failed (429)")
+  ) {
+    throw error;
   }
+
+  if (attempt < maxAttempts) {
+    await new Promise((resolve) => setTimeout(resolve, 1200 * attempt));
+    continue;
+  }
+
+  throw error;
+}
+    }
+  
 
   throw new Error("Gemini request failed after retries");
 }
