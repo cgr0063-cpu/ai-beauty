@@ -205,15 +205,18 @@ generationConfig: {
         throw new Error("Gemini API returned no text content");
       }
 
-      try {
-        return JSON.parse(text);
-      } catch (error) {
-        if (attempt < maxAttempts) {
-          await new Promise((resolve) => setTimeout(resolve, 800 * attempt));
-          continue;
-        }
+      const cleanedText = text.replace(/,\s*([}\]])/g, "$1");
 
-        throw error;
+try {
+  return JSON.parse(cleanedText);
+} catch (error) {
+  if (attempt < maxAttempts) {
+    await new Promise((resolve) => setTimeout(resolve, 800 * attempt));
+    continue;
+  }
+
+  throw error;
+
       }
     } catch (error) {
       if (attempt < maxAttempts) {
