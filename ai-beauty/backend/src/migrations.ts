@@ -47,6 +47,7 @@ const migrations: Migration[] = [
         CREATE UNIQUE INDEX IF NOT EXISTS idx_users_apple_sub ON users(apple_sub) WHERE apple_sub IS NOT NULL;
         CREATE INDEX IF NOT EXISTS idx_revenuecat_events_user_at ON revenuecat_events(user_id, event_at);
       `);
+      }
   },
   {
     version: 3,
