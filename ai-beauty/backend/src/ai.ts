@@ -87,7 +87,7 @@ async function callGeminiForJSON(
   systemPrompt: string,
   userPrompt: string,
   image?: { imageBase64: string; mediaType: string },
-  maxOutputTokens = 1200
+  maxOutputTokens = 3000
 ): Promise<any> {
   if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
 
