@@ -19,6 +19,7 @@ export interface AuthResult {
  * the Google/Apple availability checks.
  */
 export interface AuthProvider {
+  signInAsGuest(): Promise<AuthResult>;
   signInWithEmail(email: string, password: string): Promise<AuthResult>;
   registerWithEmail(email: string, password: string, name?: string): Promise<AuthResult>;
   signInWithGoogle(payload: { idToken: string }): Promise<AuthResult>;
