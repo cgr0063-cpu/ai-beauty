@@ -40,6 +40,22 @@ async function saveUsers(users: StoredLocalUser[]) {
  * false success: wrong password / duplicate email are real, checked errors.
  */
 export class DemoAuthProvider implements AuthProvider {
+    async signInAsGuest(): Promise<AuthResult> {
+    const authUser: AuthUser = {
+      id: `guest_${Date.now()}`,
+      email: null,
+      name: null,
+      provider: "guest",
+    };
+
+    await AsyncStorage.setItem(CURRENT_USER_KEY, JSON.stringify(authUser));
+
+    return {
+      user: authUser,
+      token: null,
+      scope: "local",
+    };
+  }
   async registerWithEmail(email: string, password: string, name?: string): Promise<AuthResult> {
     const users = await loadUsers();
     if (users.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
