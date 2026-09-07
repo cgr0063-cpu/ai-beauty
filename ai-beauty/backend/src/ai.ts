@@ -126,7 +126,7 @@ generationConfig: {
   maxOutputTokens,
   responseFormat: {
     text: {
-      
+      mimeType: "APPLICATION_JSON",
       schema: {
         type: "object",
         properties: {
