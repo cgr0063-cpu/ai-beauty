@@ -36,6 +36,11 @@ export class RemoteAuthProvider implements AuthProvider {
     await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
   }
 
+    async signInAsGuest(): Promise<AuthResult> {
+    const { token, user } = await this.post("/v1/auth/guest", {});
+    await this.persist(token, user);
+    return { user, token, scope: "remote" };
+    }
   async signInWithEmail(email: string, password: string): Promise<AuthResult> {
     const { token, user } = await this.post("/v1/auth/login", { email, password });
     await this.persist(token, user);
