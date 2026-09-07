@@ -6,7 +6,7 @@ export function isAIConfigured(): boolean {
   return !!apiKey;
 }
 
-const model = (process.env.GEMINI_MODEL || "gemini-2.5-flash-lite").trim();
+const model = (process.env.GEMINI_MODEL || "gemini-3.5-flash-lite").trim();
 
 /**
  * Mirrors the priority order encoded in the mobile client's offline
@@ -98,55 +98,86 @@ async function callGeminiForJSON(
 
   parts.push({ text: userPrompt });
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [{ text: systemPrompt }],
-        },
-        contents: [
-          {
-            role: "user",
-            parts,
+  const maxAttempts = 3;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey,
           },
-        ],
-        generationConfig: {
-          responseMimeType: "application/json",
-          maxOutputTokens,
-        },
-      }),
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: systemPrompt }],
+            },
+            contents: [
+              {
+                role: "user",
+                parts,
+              },
+            ],
+            generationConfig: {
+              responseMimeType: "application/json",
+              maxOutputTokens,
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const body = await response.text();
+        const retryable = [429, 500, 502, 503, 504].includes(response.status);
+
+        if (retryable && attempt < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 1200 * attempt));
+          continue;
+        }
+
+        throw new Error(
+          `Gemini API request failed (${response.status}): ${body.slice(0, 500)}`
+        );
+      }
+
+      const payload: any = await response.json();
+
+      const text = (payload?.candidates?.[0]?.content?.parts || [])
+        .map((part: any) =>
+          typeof part?.text === "string" ? part.text : ""
+        )
+        .join("")
+        .trim()
+        .replace(/^```json\s*/i, "")
+        .replace(/```\s*$/i, "");
+
+      if (!text) {
+        throw new Error("Gemini API returned no text content");
+      }
+
+      try {
+        return JSON.parse(text);
+      } catch (error) {
+        if (attempt < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 800 * attempt));
+          continue;
+        }
+
+        throw error;
+      }
+    } catch (error) {
+      if (attempt < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 1200 * attempt));
+        continue;
+      }
+
+      throw error;
     }
-  );
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(
-      `Gemini API request failed (${response.status}): ${body.slice(0, 500)}`
-    );
   }
 
-  const payload: any = await response.json();
-
-  const text = (payload?.candidates?.[0]?.content?.parts || [])
-    .map((part: any) =>
-      typeof part?.text === "string" ? part.text : ""
-    )
-    .join("")
-    .trim()
-    .replace(/^```json\s*/i, "")
-    .replace(/```\s*$/i, "");
-
-  if (!text) {
-    throw new Error("Gemini API returned no text content");
-  }
-
-  return JSON.parse(text);
+  throw new Error("Gemini request failed after retries");
 }
 
 export async function generateLook(input: LookGenerationRequest, selfie?: { imageBase64: string; mediaType: string }) {
