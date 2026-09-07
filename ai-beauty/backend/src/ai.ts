@@ -34,7 +34,8 @@ Use closetSummary before suggesting new purchases. Closet brand is user-entered 
 
 Respond with STRICT JSON matching this TypeScript type and nothing else,
 no markdown fences, no commentary:
-
+Every string value must be valid JSON. Never use unescaped double-quote characters inside string values; use single quotes or no quotation marks instead.
+Never use trailing commas. Return exactly one valid JSON object that can be parsed directly with JSON.parse().
 type LookSection = { key: string; title: string; content: string };
 type GeneratedLook = {
   id: string;
