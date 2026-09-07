@@ -8,7 +8,7 @@ import { Sparkles } from "lucide-react-native";
 import { Button } from "@/design-system/components/Button";
 import { useAppTheme } from "@/design-system/ThemeProvider";
 import { useUserStore } from "@/state/userStore";
-
+import { getAuthProvider } from "@/services/providers/auth";
 export default function WelcomeScreen() {
   const { theme } = useAppTheme();
   const { t } = useTranslation();
@@ -21,11 +21,12 @@ export default function WelcomeScreen() {
     router.push("/(onboarding)/language");
   };
 
-  const continueAsGuest = () => {
-    setGuest(true);
-    setOnboardingStarted(true);
-    router.push("/(onboarding)/language");
-  };
+  const continueAsGuest = async () => {
+  await getAuthProvider().signInAsGuest();
+  setGuest(true);
+  setOnboardingStarted(true);
+  router.push("/(onboarding)/language");
+};
 
   return (
     <LinearGradient colors={[theme.colors.background, theme.colors.backgroundElevated]} style={{ flex: 1 }}>
