@@ -7,7 +7,7 @@ export function isAIConfigured(): boolean {
 }
 
 const model = (process.env.GEMINI_MODEL || "gemini-3.5-flash-lite").trim();
-
+const fallbackModel = (process.env.GEMINI_FALLBACK_MODEL || "gemini-2.5-flash").trim();
 /**
  * Mirrors the priority order encoded in the mobile client's offline
  * `src/domain/lookEngine.ts`, so remote and demo output never contradict
@@ -102,9 +102,10 @@ async function callGeminiForJSON(
   const maxAttempts = 2;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const activeModel = attempt === 1 ? model : fallbackModel;
     try {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(activeModel)}:generateContent`,
         {
           method: "POST",
           signal: AbortSignal.timeout(6000),
