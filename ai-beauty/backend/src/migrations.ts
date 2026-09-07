@@ -47,9 +47,21 @@ const migrations: Migration[] = [
         CREATE UNIQUE INDEX IF NOT EXISTS idx_users_apple_sub ON users(apple_sub) WHERE apple_sub IS NOT NULL;
         CREATE INDEX IF NOT EXISTS idx_revenuecat_events_user_at ON revenuecat_events(user_id, event_at);
       `);
+  },
+  {
+    version: 3,
+    name: "free_ai_usage_limit",
+    async up(db) {
+      await db.exec(`
+        CREATE TABLE IF NOT EXISTS ai_usage (
+          user_id TEXT PRIMARY KEY,
+          last_free_look_at BIGINT NOT NULL DEFAULT 0
+        );
+      `);
     },
   },
 ];
+
 
 async function ensureMigrationTable(db: AppDb) {
   await db.exec(`
