@@ -108,7 +108,13 @@ async function callGeminiForJSON(
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const activeModel = models[attempt - 1];
-    try {
+    const attemptStartedAt = Date.now();
+console.log(JSON.stringify({
+  level: "info",
+  event: "gemini_attempt_started",
+  model: activeModel,
+  attempt,
+}));
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(activeModel)}:generateContent`,
         {
@@ -175,7 +181,14 @@ generationConfig: {
           }),
         }
       );
-
+console.log(JSON.stringify({
+  level: "info",
+  event: "gemini_attempt_finished",
+  model: activeModel,
+  attempt,
+  status: response.status,
+  durationMs: Date.now() - attemptStartedAt,
+}));
       if (!response.ok) {
         const body = await response.text();
         const retryable = [429, 500, 502, 503, 504].includes(response.status);
