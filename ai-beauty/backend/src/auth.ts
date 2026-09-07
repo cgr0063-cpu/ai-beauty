@@ -76,7 +76,28 @@ authRouter.post("/login", async (req, res) => {
   if (!user || !user.password_hash || !(await bcrypt.compare(parsed.data.password, user.password_hash))) return res.status(401).json({ error: "invalid_credentials" });
   res.json({ token: signToken(user.id), user: userResponse(user, "email") });
 });
+authRouter.post("/guest", async (_req, res) => {
+  const db = await getDb();
+  const id = randomUUID();
 
+  await db.run(
+    "INSERT INTO users (id, email, password_hash, name, provider, created_at) VALUES (?, NULL, NULL, NULL, 'guest', ?)",
+    id,
+    Date.now()
+  );
+
+  await ensureEntitlement(db, id);
+
+  res.json({
+    token: signToken(id),
+    user: {
+      id,
+      email: null,
+      name: null,
+      provider: "guest",
+    },
+  });
+});
 authRouter.post("/google", async (req, res) => {
   const parsed = googleSchema.safeParse(req.body); if (!parsed.success) return res.status(400).json({ error: "invalid_input" });
   if (!googleAudiences.length) return res.status(503).json({ error: "google_token_verification_not_configured" });
