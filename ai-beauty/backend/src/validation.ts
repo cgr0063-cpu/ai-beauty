@@ -85,7 +85,7 @@ export const generatedLookSchema = z.object({
   whyThisLook: shortString(1200),
   todaysEnergy: shortString(500),
   colorPaletteHex: z.array(z.string().regex(/^#[0-9a-fA-F]{6}$/)).min(1).max(12),
-}).strict();
+}).st}).passthrough();
 
 export const fitCheckResultSchema = z.object({
   outcome: z.enum(["keep", "adjust", "swap", "buy"]),
