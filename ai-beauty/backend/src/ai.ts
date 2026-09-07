@@ -99,7 +99,7 @@ async function callGeminiForJSON(
 
   parts.push({ text: userPrompt });
 
-  const maxAttempts = 3;
+  const maxAttempts = 2;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -107,6 +107,7 @@ async function callGeminiForJSON(
         `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
         {
           method: "POST",
+          signal: AbortSignal.timeout(6000),
           headers: {
             "Content-Type": "application/json",
             "x-goog-api-key": apiKey,
@@ -121,10 +122,50 @@ async function callGeminiForJSON(
                 parts,
               },
             ],
-            generationConfig: {
-              responseMimeType: "application/json",
-              maxOutputTokens,
+generationConfig: {
+  maxOutputTokens,
+  responseFormat: {
+    text: {
+      mimeType: "application/json",
+      schema: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          title: { type: "string" },
+          sections: {
+            type: "array",
+            minItems: 1,
+            maxItems: 20,
+            items: {
+              type: "object",
+              properties: {
+                key: { type: "string" },
+                title: { type: "string" },
+                content: { type: "string" },
+              },
+              required: ["key", "title", "content"],
             },
+          },
+          whyThisLook: { type: "string" },
+          todaysEnergy: { type: "string" },
+          colorPaletteHex: {
+            type: "array",
+            minItems: 1,
+            maxItems: 12,
+            items: { type: "string" },
+          },
+        },
+        required: [
+          "title",
+          "sections",
+          "whyThisLook",
+          "todaysEnergy",
+          "colorPaletteHex",
+        ],
+      },
+    },
+  },
+},
           }),
         }
       );
