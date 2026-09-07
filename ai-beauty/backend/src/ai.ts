@@ -7,7 +7,7 @@ export function isAIConfigured(): boolean {
 }
 
 const model = (process.env.GEMINI_MODEL || "gemini-3.5-flash-lite").trim();
-const fallbackModel = (process.env.GEMINI_FALLBACK_MODEL || "gemini-2.5-flash").trim();
+const fallbackModel = (process.env.GEMINI_FALLBACK_MODEL || "gemini-3.6-flash").trim();
 /**
  * Mirrors the priority order encoded in the mobile client's offline
  * `src/domain/lookEngine.ts`, so remote and demo output never contradict
