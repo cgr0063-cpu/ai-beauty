@@ -6,27 +6,41 @@ import * as WebBrowser from "expo-web-browser";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/design-system/components/Button";
 import { ComingSoonNotice } from "@/design-system/components/Primitives";
-import { getAuthProvider, isAppleSignInConfigured, isGoogleSignInConfigured } from "@/services/providers/auth";
+import {
+  getAuthProvider,
+  isAppleSignInConfigured,
+  isGoogleSignInConfigured,
+} from "@/services/providers/auth";
 import { activateSession } from "@/services/sessionLifecycle";
 
 WebBrowser.maybeCompleteAuthSession();
 
-export function AuthButtons({ onSuccess, onError }: { onSuccess: () => void; onError: (message: string) => void }) {
+function GoogleAuthButton({
+  onSuccess,
+  onError,
+}: {
+  onSuccess: () => void;
+  onError: (message: string) => void;
+}) {
   const { t } = useTranslation();
-  const [appleAvailable, setAppleAvailable] = React.useState(false);
-  React.useEffect(() => {
-    if (Platform.OS === "ios") AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false));
-  }, []);
 
-  const [, googleResponse, googlePromptAsync] = Google.useIdTokenAuthRequest({
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  });
+  const [, googleResponse, googlePromptAsync] =
+    Google.useIdTokenAuthRequest({
+      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+      androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    });
 
   React.useEffect(() => {
     if (googleResponse?.type === "success") {
-      handleGoogleToken(googleResponse.params.id_token);
+      const idToken = googleResponse.params.id_token;
+
+      if (!idToken) {
+        onError(t("errors.generic"));
+        return;
+      }
+
+      handleGoogleToken(idToken);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [googleResponse]);
@@ -36,10 +50,38 @@ export function AuthButtons({ onSuccess, onError }: { onSuccess: () => void; onE
       const result = await getAuthProvider().signInWithGoogle({ idToken });
       await activateSession(result.user, result.scope);
       onSuccess();
-    } catch (e) {
+    } catch {
       onError(t("errors.generic"));
     }
   }
+
+  return (
+    <Button
+      label={t("auth.continueWithGoogle")}
+      onPress={() => googlePromptAsync()}
+      variant="secondary"
+      fullWidth
+    />
+  );
+}
+
+export function AuthButtons({
+  onSuccess,
+  onError,
+}: {
+  onSuccess: () => void;
+  onError: (message: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [appleAvailable, setAppleAvailable] = React.useState(false);
+
+  React.useEffect(() => {
+    if (Platform.OS === "ios") {
+      AppleAuthentication.isAvailableAsync()
+        .then(setAppleAvailable)
+        .catch(() => setAppleAvailable(false));
+    }
+  }, []);
 
   async function handleAppleSignIn() {
     try {
@@ -49,14 +91,25 @@ export function AuthButtons({ onSuccess, onError }: { onSuccess: () => void; onE
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
       });
+
       const fullName = credential.fullName
-        ? [credential.fullName.givenName, credential.fullName.familyName].filter(Boolean).join(" ")
+        ? [
+            credential.fullName.givenName,
+            credential.fullName.familyName,
+          ]
+            .filter(Boolean)
+            .join(" ")
         : null;
-      if (!credential.identityToken) throw new Error("apple_identity_token_missing");
+
+      if (!credential.identityToken) {
+        throw new Error("apple_identity_token_missing");
+      }
+
       const result = await getAuthProvider().signInWithApple({
         identityToken: credential.identityToken,
         name: fullName,
       });
+
       await activateSession(result.user, result.scope);
       onSuccess();
     } catch (e: any) {
@@ -68,7 +121,7 @@ export function AuthButtons({ onSuccess, onError }: { onSuccess: () => void; onE
   return (
     <View style={{ gap: 10 }}>
       {isGoogleSignInConfigured ? (
-        <Button label={t("auth.continueWithGoogle")} onPress={() => googlePromptAsync()} variant="secondary" fullWidth />
+        <GoogleAuthButton onSuccess={onSuccess} onError={onError} />
       ) : (
         <ComingSoonNotice
           title={t("auth.continueWithGoogle")}
@@ -79,16 +132,22 @@ export function AuthButtons({ onSuccess, onError }: { onSuccess: () => void; onE
       {Platform.OS === "ios" &&
         (isAppleSignInConfigured && appleAvailable ? (
           <AppleAuthentication.AppleAuthenticationButton
-            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+            buttonType={
+              AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN
+            }
+            buttonStyle={
+              AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+            }
             cornerRadius={999}
             style={{ height: 48 }}
             onPress={handleAppleSignIn}
           />
         ) : (
-          <ComingSoonNotice title={t("auth.continueWithApple")} description={t("auth.appleNotConfigured")} />
+          <ComingSoonNotice
+            title={t("auth.continueWithApple")}
+            description={t("auth.appleNotConfigured")}
+          />
         ))}
     </View>
   );
 }
-
