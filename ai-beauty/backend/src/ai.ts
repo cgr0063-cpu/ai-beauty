@@ -113,7 +113,7 @@ async function callGeminiForJSON(
         `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(activeModel)}:generateContent`,
         {
           method: "POST",
-          signal: AbortSignal.timeout(6000),
+          signal: AbortSignal.timeout(12000),
           headers: {
             "Content-Type": "application/json",
             "x-goog-api-key": apiKey,
