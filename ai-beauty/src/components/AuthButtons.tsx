@@ -2,8 +2,10 @@ import React from "react";
 import { View, Platform } from "react-native";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Google from "expo-auth-session/providers/google";
+import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import { useTranslation } from "react-i18next";
+
 import { Button } from "@/design-system/components/Button";
 import { ComingSoonNotice } from "@/design-system/components/Primitives";
 import {
@@ -24,11 +26,16 @@ function GoogleAuthButton({
 }) {
   const { t } = useTranslation();
 
+  const redirectUri = AuthSession.makeRedirectUri({
+    scheme: "aibeauty",
+  });
+
   const [, googleResponse, googlePromptAsync] =
     Google.useIdTokenAuthRequest({
       iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
       androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
       webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+      redirectUri,
     });
 
   React.useEffect(() => {
@@ -47,7 +54,10 @@ function GoogleAuthButton({
 
   async function handleGoogleToken(idToken: string) {
     try {
-      const result = await getAuthProvider().signInWithGoogle({ idToken });
+      const result = await getAuthProvider().signInWithGoogle({
+        idToken,
+      });
+
       await activateSession(result.user, result.scope);
       onSuccess();
     } catch {
@@ -121,7 +131,10 @@ export function AuthButtons({
   return (
     <View style={{ gap: 10 }}>
       {isGoogleSignInConfigured ? (
-        <GoogleAuthButton onSuccess={onSuccess} onError={onError} />
+        <GoogleAuthButton
+          onSuccess={onSuccess}
+          onError={onError}
+        />
       ) : (
         <ComingSoonNotice
           title={t("auth.continueWithGoogle")}
