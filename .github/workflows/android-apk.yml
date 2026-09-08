@@ -7,8 +7,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+
     env:
       EXPO_PUBLIC_API_BASE_URL: ${{ vars.EXPO_PUBLIC_API_BASE_URL }}
+      EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: ${{ vars.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID }}
+
     defaults:
       run:
         working-directory: ai-beauty
