@@ -190,7 +190,7 @@ export default function ProfileScreen() {
 
         {/* Account */}
         <SectionRow icon={<UserCircle2 size={18} color={theme.colors.accent} />} title={t("profile.account")}>
-          {auth.currentUser ? (
+          {auth.currentUser && auth.scope !== "local" ? (
             <Card>
               <Text style={{ color: theme.colors.textPrimary, fontWeight: "700" }}>
                 {auth.currentUser.name ?? auth.currentUser.email}
