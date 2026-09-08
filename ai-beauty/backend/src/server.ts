@@ -122,7 +122,7 @@ app.post("/v1/webhooks/revenuecat", express.json({ limit: "256kb" }), async (req
   }
   res.json({ ok: true });
 });
-const aiLimiter = rateLimit({ windowMs: 60_000, max: 12, prefix: "ai" });
+const aiLimiter = rateLimit({ windowMs: 60_000, max: 30, prefix: "ai" });
 
 app.get("/v1/health/live", (_req, res) => res.json({ ok: true }));
 app.get("/v1/health/ready", async (_req, res) => {
