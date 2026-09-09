@@ -1,9 +1,11 @@
 import React from "react";
 import { View, Platform } from "react-native";
 import * as AppleAuthentication from "expo-apple-authentication";
-import * as Google from "expo-auth-session/providers/google";
-import * as AuthSession from "expo-auth-session";
-import * as WebBrowser from "expo-web-browser";
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/design-system/components/Button";
@@ -15,7 +17,9 @@ import {
 } from "@/services/providers/auth";
 import { activateSession } from "@/services/sessionLifecycle";
 
-WebBrowser.maybeCompleteAuthSession();
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+});
 
 function GoogleAuthButton({
   onSuccess,
@@ -26,41 +30,35 @@ function GoogleAuthButton({
 }) {
   const { t } = useTranslation();
 
-  const redirectUri = AuthSession.makeRedirectUri({
-    scheme: "aibeauty",
-  });
+  async function handleGoogleSignIn() {
+    try {
+      await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      });
 
-  const [, googleResponse, googlePromptAsync] =
-    Google.useIdTokenAuthRequest({
-      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-      androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-      redirectUri,
-    });
+      await GoogleSignin.signIn();
 
-  React.useEffect(() => {
-    if (googleResponse?.type === "success") {
-      const idToken = googleResponse.params.id_token;
+      const tokens = await GoogleSignin.getTokens();
+      const idToken = tokens.idToken;
 
       if (!idToken) {
         onError(t("errors.generic"));
         return;
       }
 
-      handleGoogleToken(idToken);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [googleResponse]);
-
-  async function handleGoogleToken(idToken: string) {
-    try {
       const result = await getAuthProvider().signInWithGoogle({
         idToken,
       });
 
       await activateSession(result.user, result.scope);
       onSuccess();
-    } catch {
+    } catch (error) {
+      if (isErrorWithCode(error)) {
+        if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+          return;
+        }
+      }
+
       onError(t("errors.generic"));
     }
   }
@@ -68,7 +66,7 @@ function GoogleAuthButton({
   return (
     <Button
       label={t("auth.continueWithGoogle")}
-      onPress={() => googlePromptAsync()}
+      onPress={handleGoogleSignIn}
       variant="secondary"
       fullWidth
     />
