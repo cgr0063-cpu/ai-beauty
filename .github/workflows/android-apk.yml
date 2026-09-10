@@ -42,7 +42,13 @@ jobs:
 
       - name: Expo doctor
         run: npx expo-doctor@latest
-
+      - name: Check Google Web Client ID
+        run: |
+          if [ -z "$EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID" ]; then
+            echo "WEB CLIENT ID IS EMPTY"
+            exit 1
+          fi
+          echo "WEB CLIENT ID EXISTS"
       - name: Generate Android project
         run: npx expo prebuild --platform android --clean --no-install
       - name: Check applicationId
