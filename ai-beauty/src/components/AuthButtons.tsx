@@ -35,6 +35,7 @@ function GoogleAuthButton({
   async function handleGoogleSignIn() {
     if (loading) return;
 
+    onError("");
     setLoading(true);
 
     try {
@@ -45,6 +46,7 @@ function GoogleAuthButton({
       const response = await GoogleSignin.signIn();
 
       if (!isSuccessResponse(response)) {
+        onError(`Google response: ${JSON.stringify(response)}`);
         return;
       }
 
@@ -55,19 +57,30 @@ function GoogleAuthButton({
         return;
       }
 
+      onError("Google step: token received");
+
       const result = await getAuthProvider().signInWithGoogle({
         idToken,
       });
 
+      onError("Google step: backend accepted");
+
       await activateSession(result.user, result.scope);
+
+      onError("");
       onSuccess();
     } catch (error) {
       if (isErrorWithCode(error)) {
         if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+          onError("Google error: SIGN_IN_CANCELLED");
           return;
         }
 
-        onError(`Google error: ${error.code}`);
+        onError(
+          `Google error: ${error.code}${
+            error.message ? ` - ${error.message}` : ""
+          }`
+        );
         return;
       }
 
@@ -76,7 +89,7 @@ function GoogleAuthButton({
         return;
       }
 
-      onError(String(error));
+      onError(`Unknown Google error: ${String(error)}`);
     } finally {
       setLoading(false);
     }
@@ -88,6 +101,7 @@ function GoogleAuthButton({
       onPress={handleGoogleSignIn}
       variant="secondary"
       fullWidth
+      loading={loading}
     />
   );
 }
