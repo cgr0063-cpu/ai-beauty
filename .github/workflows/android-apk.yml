@@ -45,7 +45,12 @@ jobs:
 
       - name: Generate Android project
         run: npx expo prebuild --platform android --clean --no-install
-
+      - name: Check applicationId
+        run: |
+          echo "=== APPLICATION ID ==="
+          grep -R "applicationId" android/app/build.gradle* || true
+          echo "=== PACKAGE IN MANIFEST ==="
+          grep -R "package=" android/app/src/main/AndroidManifest.xml || true
       - name: Build APK
         run: |
           cd android
