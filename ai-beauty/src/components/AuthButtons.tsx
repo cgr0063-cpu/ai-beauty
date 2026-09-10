@@ -51,7 +51,8 @@ function GoogleAuthButton({
       const idToken = response.data.idToken;
 
       if (!idToken) {
-        throw new Error("google_id_token_missing");
+        onError("Google error: ID_TOKEN_MISSING");
+        return;
       }
 
       const result = await getAuthProvider().signInWithGoogle({
@@ -65,10 +66,17 @@ function GoogleAuthButton({
         if (error.code === statusCodes.SIGN_IN_CANCELLED) {
           return;
         }
+
+        onError(`Google error: ${error.code}`);
+        return;
       }
 
-      console.error("google_sign_in_failed", error);
-      onError(t("errors.generic"));
+      if (error instanceof Error) {
+        onError(`${error.name}: ${error.message}`);
+        return;
+      }
+
+      onError(String(error));
     } finally {
       setLoading(false);
     }
@@ -80,7 +88,6 @@ function GoogleAuthButton({
       onPress={handleGoogleSignIn}
       variant="secondary"
       fullWidth
-      disabled={loading}
     />
   );
 }
@@ -132,8 +139,8 @@ export function AuthButtons({
 
       await activateSession(result.user, result.scope);
       onSuccess();
-    } catch (e: any) {
-      if (e?.code === "ERR_REQUEST_CANCELED") return;
+    } catch (error: any) {
+      if (error?.code === "ERR_REQUEST_CANCELED") return;
       onError(t("errors.generic"));
     }
   }
