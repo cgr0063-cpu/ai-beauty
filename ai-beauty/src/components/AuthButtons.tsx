@@ -4,6 +4,7 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import {
   GoogleSignin,
   isErrorWithCode,
+  isSuccessResponse,
   statusCodes,
 } from "@react-native-google-signin/google-signin";
 import { useTranslation } from "react-i18next";
@@ -29,21 +30,28 @@ function GoogleAuthButton({
   onError: (message: string) => void;
 }) {
   const { t } = useTranslation();
+  const [loading, setLoading] = React.useState(false);
 
   async function handleGoogleSignIn() {
+    if (loading) return;
+
+    setLoading(true);
+
     try {
       await GoogleSignin.hasPlayServices({
         showPlayServicesUpdateDialog: true,
       });
 
-      await GoogleSignin.signIn();
+      const response = await GoogleSignin.signIn();
 
-      const tokens = await GoogleSignin.getTokens();
-      const idToken = tokens.idToken;
+      if (!isSuccessResponse(response)) {
+        return;
+      }
+
+      const idToken = response.data.idToken;
 
       if (!idToken) {
-        onError(t("errors.generic"));
-        return;
+        throw new Error("google_id_token_missing");
       }
 
       const result = await getAuthProvider().signInWithGoogle({
@@ -59,7 +67,10 @@ function GoogleAuthButton({
         }
       }
 
+      console.error("google_sign_in_failed", error);
       onError(t("errors.generic"));
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -69,6 +80,7 @@ function GoogleAuthButton({
       onPress={handleGoogleSignIn}
       variant="secondary"
       fullWidth
+      disabled={loading}
     />
   );
 }
