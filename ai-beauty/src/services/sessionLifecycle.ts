@@ -7,6 +7,7 @@ import { useUserStore } from "@/state/userStore";
 import { useWardrobeStore } from "@/state/wardrobeStore";
 import { AuthUser } from "@/services/providers/auth/AuthProvider";
 import { getSubscriptionProvider } from "@/services/providers/subscription";
+import type { SubscriptionProvider } from "@/services/providers/subscription/SubscriptionProvider";
 import { getAuthProviderForScope } from "@/services/providers/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import i18n from "@/i18n";
@@ -24,14 +25,19 @@ type AccountSnapshot = {
 const accountSnapshotKey = (userId: string) => `aibeauty.account.${encodeURIComponent(userId)}.v1`;
 
 function withoutFunctions<T extends Record<string, any>>(state: T): Partial<T> {
-  return Object.fromEntries(Object.entries(state).filter(([, value]) => typeof value !== "function")) as Partial<T>;
+  return Object.fromEntries(
+    Object.entries(state).filter(([, value]) => typeof value !== "function")
+  ) as Partial<T>;
 }
 
 async function saveAccountSnapshot(userId: string) {
   const snapshot: AccountSnapshot = {
     user: withoutFunctions(useUserStore.getState()),
     wardrobe: { items: useWardrobeStore.getState().items },
-    savedLooks: { saved: useSavedLooksStore.getState().saved, feedback: useSavedLooksStore.getState().feedback },
+    savedLooks: {
+      saved: useSavedLooksStore.getState().saved,
+      feedback: useSavedLooksStore.getState().feedback,
+    },
     todayContext: withoutFunctions(useTodayContextStore.getState()),
     settings: withoutFunctions(useSettingsStore.getState()),
   };
@@ -41,10 +47,13 @@ async function saveAccountSnapshot(userId: string) {
 async function restoreAccountSnapshot(userId: string): Promise<boolean> {
   const raw = await AsyncStorage.getItem(accountSnapshotKey(userId));
   if (!raw) return false;
+
   try {
     const snapshot = JSON.parse(raw) as AccountSnapshot;
     if (snapshot.user) useUserStore.setState(snapshot.user);
-    if (snapshot.wardrobe?.items) useWardrobeStore.setState({ items: snapshot.wardrobe.items });
+    if (snapshot.wardrobe?.items) {
+      useWardrobeStore.setState({ items: snapshot.wardrobe.items });
+    }
     if (snapshot.savedLooks) useSavedLooksStore.setState(snapshot.savedLooks);
     if (snapshot.todayContext) useTodayContextStore.setState(snapshot.todayContext);
     if (snapshot.settings) useSettingsStore.setState(snapshot.settings);
@@ -69,8 +78,12 @@ export function resetPersonalData() {
   useEntitlementStore.getState().reset();
 }
 
-export async function activateSession(user: AuthUser, scope: "local" | "remote") {
+export async function activateSession(
+  user: AuthUser,
+  scope: "local" | "remote"
+) {
   const previous = useAuthStore.getState().currentUser;
+
   if (!previous || previous.id !== user.id) {
     if (previous) await saveAccountSnapshot(previous.id).catch(() => {});
     resetPersonalData();
@@ -79,45 +92,98 @@ export async function activateSession(user: AuthUser, scope: "local" | "remote")
 
   useAuthStore.getState().setSession(user, scope);
   useUserStore.getState().setGuest(false);
+
   const ns = useSettingsStore.getState();
   await syncNotificationSchedules({
-    dailyEnabled: ns.notificationsEnabled, inactivityEnabled: ns.inactivityReminderEnabled, weeklyTrendEnabled: ns.weeklyTrendNotificationsEnabled, savedLookEnabled: ns.savedLookReminderEnabled,
-    copy: { dailyTitle: i18n.t("notifications.dailyTitle"), dailyBody: i18n.t("notifications.dailyBody"), inactivityTitle: i18n.t("notifications.inactivityTitle"), inactivityBody: i18n.t("notifications.inactivityBody"), weeklyTrendTitle: i18n.t("notifications.weeklyTrendTitle"), weeklyTrendBody: i18n.t("notifications.weeklyTrendBody"), savedLookTitle: i18n.t("notifications.savedLookTitle"), savedLookBody: i18n.t("notifications.savedLookBody") },
+    dailyEnabled: ns.notificationsEnabled,
+    inactivityEnabled: ns.inactivityReminderEnabled,
+    weeklyTrendEnabled: ns.weeklyTrendNotificationsEnabled,
+    savedLookEnabled: ns.savedLookReminderEnabled,
+    copy: {
+      dailyTitle: i18n.t("notifications.dailyTitle"),
+      dailyBody: i18n.t("notifications.dailyBody"),
+      inactivityTitle: i18n.t("notifications.inactivityTitle"),
+      inactivityBody: i18n.t("notifications.inactivityBody"),
+      weeklyTrendTitle: i18n.t("notifications.weeklyTrendTitle"),
+      weeklyTrendBody: i18n.t("notifications.weeklyTrendBody"),
+      savedLookTitle: i18n.t("notifications.savedLookTitle"),
+      savedLookBody: i18n.t("notifications.savedLookBody"),
+    },
   }).catch(() => false);
 
-  // Billing identity follows the authenticated app account. If RevenueCat is
-  // not configured this is a no-op in development.
-  await getSubscriptionProvider().identifyUser(user.id).catch(() => {});
-  const entitlement = await getSubscriptionProvider().getEntitlementStatus().catch(() => "free" as const);
+  // Billing identity follows the authenticated app account. This must never
+  // block authentication: getSubscriptionProvider() itself can throw
+  // synchronously, which a trailing Promise .catch() would not catch.
+  let entitlement: Awaited<
+    ReturnType<SubscriptionProvider["getEntitlementStatus"]>
+  > = "free";
+
+  try {
+    await getSubscriptionProvider().identifyUser(user.id).catch(() => {});
+    entitlement = await getSubscriptionProvider()
+      .getEntitlementStatus()
+      .catch(() => "free" as const);
+  } catch {
+    entitlement = "free";
+  }
+
   useEntitlementStore.getState().setStatus(entitlement);
 }
 
-export async function clearSession(options: { preserveSnapshot?: boolean } = {}) {
+export async function clearSession(
+  options: { preserveSnapshot?: boolean } = {}
+) {
   const currentUser = useAuthStore.getState().currentUser;
   const preserveSnapshot = options.preserveSnapshot !== false;
-  if (currentUser && preserveSnapshot) await saveAccountSnapshot(currentUser.id).catch(() => {});
-  if (currentUser && !preserveSnapshot) await AsyncStorage.removeItem(accountSnapshotKey(currentUser.id)).catch(() => {});
-  await getSubscriptionProvider().clearUserIdentity().catch(() => {});
+
+  if (currentUser && preserveSnapshot) {
+    await saveAccountSnapshot(currentUser.id).catch(() => {});
+  }
+
+  if (currentUser && !preserveSnapshot) {
+    await AsyncStorage.removeItem(accountSnapshotKey(currentUser.id)).catch(
+      () => {}
+    );
+  }
+
+  try {
+    await getSubscriptionProvider().clearUserIdentity().catch(() => {});
+  } catch {
+    // Billing provider must never block sign-out.
+  }
+
   await cancelAllBeautyReminders().catch(() => {});
   useAuthStore.getState().setSession(null, null);
   resetPersonalData();
   useUserStore.getState().setGuest(true);
 }
 
-
 export async function reconcilePersistedSession() {
   const { currentUser, scope } = useAuthStore.getState();
   if (!currentUser || !scope) return;
+
   try {
     const provider = getAuthProviderForScope(scope);
-    const [providerUser, token] = await Promise.all([provider.getCurrentUser(), provider.getToken()]);
-    if (!providerUser || providerUser.id !== currentUser.id || (scope === "remote" && !token)) {
+    const [providerUser, token] = await Promise.all([
+      provider.getCurrentUser(),
+      provider.getToken(),
+    ]);
+
+    if (
+      !providerUser ||
+      providerUser.id !== currentUser.id ||
+      (scope === "remote" && !token)
+    ) {
       await clearSession();
       return;
     }
+
     useAuthStore.getState().setSession(providerUser, scope);
     useUserStore.getState().setGuest(false);
-    if (providerUser.name && !useUserStore.getState().name) useUserStore.getState().setName(providerUser.name);
+
+    if (providerUser.name && !useUserStore.getState().name) {
+      useUserStore.getState().setName(providerUser.name);
+    }
   } catch {
     await clearSession();
   }
