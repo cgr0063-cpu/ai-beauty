@@ -65,7 +65,7 @@ jobs:
           rm -rf apk-inspect
           mkdir apk-inspect
           unzip -q "$PWD/dist/ai-beauty-production.apk" -d apk-inspect
-          grep -RhoE '[0-9]+-[A-Za-z0-9_-]+\.apps\.googleusercontent\.com' apk-inspect 2>/dev/null | sort -u || true
+          grep -RhaoE '[0-9]+-[A-Za-z0-9_-]+\.apps\.googleusercontent\.com' apk-inspect 2>/dev/null | sort -u -c || true
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
