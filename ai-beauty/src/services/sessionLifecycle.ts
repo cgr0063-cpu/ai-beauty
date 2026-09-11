@@ -127,10 +127,14 @@ export async function activateSession(
     await getSubscriptionProvider().identifyUser(user.id).catch(() => {});
     debug?.("AS: after RC identifyUser");
     debug?.("AS: before RC entitlement");
-    entitlement = await getSubscriptionProvider()
-      .getEntitlementStatus()
-      
-      .catch(() => "free" as const);
+    entitlement = await Promise.race([
+  getSubscriptionProvider()
+    .getEntitlementStatus()
+    .catch(() => "free" as const),
+  new Promise<"free">((resolve) =>
+    setTimeout(() => resolve("free"), 6000)
+  ),
+]);
     debug?.("AS: after RC entitlement");
   } catch {
     entitlement = "free";
