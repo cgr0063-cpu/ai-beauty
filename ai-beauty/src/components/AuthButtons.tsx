@@ -18,7 +18,9 @@ import {
 } from "@/services/providers/auth";
 import { activateSession } from "@/services/sessionLifecycle";
 
-GoogleSignin.configure();
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+});
 
 function GoogleAuthButton({
   onSuccess,
