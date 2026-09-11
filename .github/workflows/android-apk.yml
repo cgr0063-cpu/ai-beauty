@@ -3,76 +3,66 @@ name: Android Diagnostic APK
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
-    env:
-      EXPO_PUBLIC_API_BASE_URL: ${{ vars.EXPO_PUBLIC_API_BASE_URL }}
-      EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: ${{ vars.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID }}
-      EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ vars.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
-
     defaults:
       run:
         working-directory: ai-beauty
+
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      CI: 1
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Node
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: ai-beauty/package-lock.json
 
-      - name: Java
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Expo doctor
-        run: npx expo-doctor@latest
-      - name: Check Google Web Client ID
-        run: |
-          if [ -z "$EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID" ]; then
-            echo "WEB CLIENT ID IS EMPTY"
-            exit 1
-          fi
-          echo "WEB CLIENT ID EXISTS"
-      - name: Generate Android project
-        run: npx expo prebuild --platform android --clean --no-install
-      - name: Check applicationId
-        run: |
-          echo "=== APPLICATION ID ==="
-          grep -R "applicationId" android/app/build.gradle* || true
-          echo "=== PACKAGE IN MANIFEST ==="
-          grep -R "package=" android/app/src/main/AndroidManifest.xml || true
-      - name: Build APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleRelease
+      - name: Pull Expo production environment
+        run: npx eas-cli@latest env:pull --environment production --non-interactive
 
-      - name: Show APK signing certificate
+      - name: Build production-parity APK locally
         run: |
-          APK=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
-          echo "APK: $APK"
+          mkdir -p dist
+          npx eas-cli@latest build \
+            --platform android \
+            --profile production-apk \
+            --local \
+            --non-interactive \
+            --output "$PWD/dist/ai-beauty-production.apk"
+
+      - name: Verify APK signing certificate
+        run: |
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
-          echo "APKSIGNER: $APKSIGNER"
-          "$APKSIGNER" verify --print-certs "$APK"
+          "$APKSIGNER" verify --print-certs "$PWD/dist/ai-beauty-production.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ai-beauty-diagnostic-apk
-          path: ai-beauty/android/app/build/outputs/apk/release/*.apk
+          name: ai-beauty-production-apk
+          path: ai-beauty/dist/ai-beauty-production.apk
+          retention-days: 7
