@@ -65,7 +65,7 @@ function GoogleAuthButton({
 
       onError("Google step: backend accepted");
 
-      await activateSession(result.user, result.scope);
+      await activateSession(result.user, result.scope, onError);
 
       onError("");
       onSuccess();
