@@ -186,7 +186,14 @@ generationConfig: {
       }
 
       const cleanedText = text.replace(/,\s*([}\]])/g, "$1");
-
+console.log(JSON.stringify({
+  level: "error",
+  event: "gemini_json_parse_debug",
+  finishReason: payload?.candidates?.[0]?.finishReason ?? null,
+  partsCount: payload?.candidates?.[0]?.content?.parts?.length ?? 0,
+  textLength: cleanedText.length,
+  char40to70: cleanedText.slice(40, 70),
+}));
 try {
   return JSON.parse(cleanedText);
 } catch (error) {
