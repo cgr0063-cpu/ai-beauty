@@ -1,5 +1,5 @@
 import { getAuthProvider } from "@/services/providers/auth";
-import { AIProvider, ClosetItemAnalysis, FitCheckInput, FitCheckResult, GeneratedLook, LookRequestInput } from "./AIProvider";
+import { AIProvider, ClosetItemAnalysis, FitCheckInput, FitCheckResult, GeneratedLook, LookRequestInput, TryOnRequest, TryOnResult } from "./AIProvider";
 
 const REQUEST_TIMEOUT_MS = 15_000;
 
@@ -68,5 +68,36 @@ export class RemoteAIProvider implements AIProvider {
     form.append("languageCode", input.languageCode);
     const result = await this.request<FitCheckResult>("/v1/fit-check/analyze", { method: "POST", headers: await this.authHeaders(false), body: form });
     return { ...result, source: "remote" };
+  }async generateTryOnPreview(request: TryOnRequest): Promise<TryOnResult> {
+  const form = new FormData();
+
+  form.append(
+    "userPhoto",
+    {
+      uri: request.userPhotoUri,
+      name: "try-on-user.jpg",
+      type: "image/jpeg",
+    } as unknown as Blob
+  );
+
+  request.garments.forEach((garment, index) => {
+    form.append(
+      "garments",
+      {
+        uri: garment.photoUri,
+        name: `garment-${index}.jpg`,
+        type: "image/jpeg",
+      } as unknown as Blob
+    );
+  });
+
+  form.append("quality", request.quality ?? "fast");
+  form.append("aspectRatio", request.aspectRatio ?? "3:4");
+
+  return this.request<TryOnResult>("/v1/fit-check/try-on", {
+    method: "POST",
+    headers: await this.authHeaders(false),
+    body: form,
+  });
   }
 }
