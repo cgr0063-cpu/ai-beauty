@@ -400,7 +400,111 @@ export async function analyzeFitCheck(input: {
 
   return fitCheckResultSchema.parse(result);
 }
+export async function generateTryOnImage(input: {
+  userPhoto: {
+    imageBase64: string;
+    mediaType: string;
+  };
+  garments: Array<{
+    imageBase64: string;
+    mediaType: string;
+  }>;
+  quality?: "fast" | "high";
+  aspectRatio?: "1:1" | "3:4" | "9:16";
+}) {
+  if (!apiKey) {
+    throw new Error("gemini_api_key_missing");
+  }
 
+  if (!input.garments.length) {
+    throw new Error("try_on_garment_missing");
+  }
+
+  const model =
+    input.quality === "high"
+      ? "gemini-3-pro-image"
+      : "gemini-3.1-flash-image";
+
+  const parts: any[] = [
+    {
+      text: [
+        "Create a realistic virtual try-on image.",
+        "The FIRST image is the person and must remain the same person.",
+        "All following images are garment references to dress the person with.",
+        "Preserve the person's face, identity, body proportions, skin tone, hair, pose and background.",
+        "Do not beautify, reshape or alter the person's body.",
+        "Replace only the relevant clothing with the supplied garments.",
+        "Match garment color, material, pattern and design as closely as possible.",
+        "Keep realistic fabric folds, lighting, shadows and perspective.",
+        "Return one photorealistic image only."
+      ].join(" "),
+    },
+    {
+      inlineData: {
+        mimeType: input.userPhoto.mediaType,
+        data: input.userPhoto.imageBase64,
+      },
+    },
+    ...input.garments.map((garment) => ({
+      inlineData: {
+        mimeType: garment.mediaType,
+        data: garment.imageBase64,
+      },
+    })),
+  ];
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "x-goog-api-key": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts,
+          },
+        ],
+        generationConfig: {
+          responseModalities: ["IMAGE"],
+          responseFormat: {
+            image: {
+              aspectRatio: input.aspectRatio ?? "3:4",
+              imageSize: input.quality === "high" ? "2K" : "1K",
+            },
+          },
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `gemini_try_on_failed_${response.status}: ${errorText.slice(0, 500)}`
+    );
+  }
+
+  const payload: any = await response.json();
+
+  const imagePart = payload?.candidates?.[0]?.content?.parts?.find(
+    (part: any) => part?.inlineData?.data
+  );
+
+  if (!imagePart?.inlineData?.data) {
+    throw new Error("gemini_try_on_no_image");
+  }
+
+  return {
+    imageBase64: imagePart.inlineData.data,
+    mimeType: imagePart.inlineData.mimeType ?? "image/png",
+    modelUsed: model,
+    warnings: [],
+  };
+}
 const CLOSET_ITEM_SYSTEM_PROMPT = `You classify one clothing/accessory photo for a wardrobe assistant.
 Describe only the visible item. Do not infer the person's identity, body, health, ethnicity, age, gender or attractiveness.
 If the photo is not clearly a clothing/accessory item, use category "other", confidence "low", and a neutral label.
