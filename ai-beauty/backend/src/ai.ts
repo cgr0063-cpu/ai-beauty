@@ -142,11 +142,12 @@ generationConfig: {
     text: {
       mimeType: "APPLICATION_JSON",
       schema: responseSchema,
+    },
+  },
 },
           }),
         }
       );
-console.log(JSON.stringify({
   level: "info",
   event: "gemini_attempt_finished",
   model: activeModel,
