@@ -148,6 +148,7 @@ generationConfig: {
           }),
         }
       );
+      console.log(JSON.stringify({
   level: "info",
   event: "gemini_attempt_finished",
   model: activeModel,
