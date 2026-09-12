@@ -1,4 +1,4 @@
-import { AIProvider, ClosetItemAnalysis, FitCheckInput, FitCheckResult, GeneratedLook, LookRequestInput } from "./AIProvider";
+import { AIProvider, ClosetItemAnalysis, FitCheckInput, FitCheckResult, GeneratedLook, LookRequestInput, TryOnRequest, TryOnResult } from "./AIProvider";
 import { buildTodaysLook, regenerateWithDirection } from "@/domain/lookEngine";
 import { evaluateFitCheck } from "@/domain/fitCheckEngine";
 
@@ -37,4 +37,10 @@ export class DemoAIProvider implements AIProvider {
     await delay(1100);
     return evaluateFitCheck(input);
   }
+  
+
+
+async generateTryOnPreview(_request: TryOnRequest): Promise<TryOnResult> {
+  throw new Error("try_on_not_available_in_demo");
+}
 }
