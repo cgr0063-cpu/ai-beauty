@@ -87,7 +87,8 @@ async function callGeminiForJSON(
   systemPrompt: string,
   userPrompt: string,
   image?: { imageBase64: string; mediaType: string },
-  maxOutputTokens = 3000
+  maxOutputTokens = 3000,
+responseSchema?: any
 ): Promise<any> {
   if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
 
@@ -140,44 +141,7 @@ generationConfig: {
   responseFormat: {
     text: {
       mimeType: "APPLICATION_JSON",
-      schema: {
-        type: "object",
-        properties: {
-          id: { type: "string" },
-          title: { type: "string" },
-          sections: {
-            type: "array",
-            minItems: 1,
-            maxItems: 20,
-            items: {
-              type: "object",
-              properties: {
-                key: { type: "string" },
-                title: { type: "string" },
-                content: { type: "string" },
-              },
-              required: ["key", "title", "content"],
-            },
-          },
-          whyThisLook: { type: "string" },
-          todaysEnergy: { type: "string" },
-          colorPaletteHex: {
-            type: "array",
-            minItems: 1,
-            maxItems: 12,
-            items: { type: "string" },
-          },
-        },
-        required: [
-          "title",
-          "sections",
-          "whyThisLook",
-          "todaysEnergy",
-          "colorPaletteHex",
-        ],
-      },
-    },
-  },
+      schema: responseSchema,
 },
           }),
         }
@@ -252,9 +216,50 @@ try {
 
   throw new Error("Gemini request failed after retries");
 }
-
+const LOOK_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    title: { type: "string" },
+    sections: {
+      type: "array",
+      minItems: 1,
+      maxItems: 20,
+      items: {
+        type: "object",
+        properties: {
+          key: { type: "string" },
+          title: { type: "string" },
+          content: { type: "string" },
+        },
+        required: ["key", "title", "content"],
+      },
+    },
+    whyThisLook: { type: "string" },
+    todaysEnergy: { type: "string" },
+    colorPaletteHex: {
+      type: "array",
+      minItems: 1,
+      maxItems: 12,
+      items: { type: "string" },
+    },
+  },
+  required: [
+    "title",
+    "sections",
+    "whyThisLook",
+    "todaysEnergy",
+    "colorPaletteHex",
+  ],
+};
 export async function generateLook(input: LookGenerationRequest, selfie?: { imageBase64: string; mediaType: string }) {
-  const result = await callGeminiForJSON(LOOK_SYSTEM_PROMPT, JSON.stringify(input), selfie);
+  const result = await callGeminiForJSON(
+  LOOK_SYSTEM_PROMPT,
+  JSON.stringify(input),
+  selfie,
+  3000,
+  LOOK_RESPONSE_SCHEMA
+);
   const parsed = generatedLookSchema.parse(result);
   return { ...parsed, id: parsed.id ?? `look_${Date.now()}` };
 }
@@ -265,11 +270,67 @@ export async function regenerateLook(
   selfie?: { imageBase64: string; mediaType: string }
 ) {
   const prompt = JSON.stringify({ ...input, requestedAdjustment: direction });
-  const result = await callGeminiForJSON(LOOK_SYSTEM_PROMPT, prompt, selfie);
+
+  const result = await callGeminiForJSON(
+    LOOK_SYSTEM_PROMPT,
+    prompt,
+    selfie,
+    3000,
+    LOOK_RESPONSE_SCHEMA
+  );
+
   const parsed = generatedLookSchema.parse(result);
   return { ...parsed, id: parsed.id ?? `look_${Date.now()}_${direction}` };
 }
-
+}
+const FIT_CHECK_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    outcome: { type: "string" },
+    confidence: { type: "string" },
+    whatWorks: {
+      type: "array",
+      items: { type: "string" },
+    },
+    whatToChange: {
+      type: "array",
+      items: { type: "string" },
+    },
+    why: { type: "string" },
+    closetAlternative: { type: "string", nullable: true },
+    tailorAdvice: {
+      type: "array",
+      items: { type: "string" },
+      nullable: true,
+    },
+    shopSuggestion: { type: "string", nullable: true },
+    detectedItems: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          category: { type: "string" },
+          label: { type: "string" },
+          color: { type: "string", nullable: true },
+          styleTags: {
+            type: "array",
+            items: { type: "string" },
+          },
+          confidence: { type: "string" },
+        },
+        required: ["category", "label", "styleTags", "confidence"],
+      },
+    },
+  },
+  required: [
+    "outcome",
+    "confidence",
+    "whatWorks",
+    "whatToChange",
+    "why",
+    "detectedItems",
+  ],
+};
 const FIT_CHECK_SYSTEM_PROMPT = `You are the Fit Check engine for "AI Beauty".
 You evaluate an outfit photo and respond with an honest, kind, practical
 read — never a numerical attractiveness score, never a comment on the
@@ -324,7 +385,8 @@ export async function analyzeFitCheck(input: {
       imageBase64: input.imageBase64,
       mediaType: input.mediaType,
     },
-    900
+    900,
+    FIT_CHECK_RESPONSE_SCHEMA
   );
 
   return fitCheckResultSchema.parse(result);
