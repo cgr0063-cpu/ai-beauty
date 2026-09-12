@@ -57,15 +57,15 @@ function GoogleAuthButton({
         return;
       }
 
-      onError("Google step: token received");
+      
 
       const result = await getAuthProvider().signInWithGoogle({
         idToken,
       });
 
-      onError("Google step: backend accepted");
+      
 
-      await activateSession(result.user, result.scope, onError);
+      await activateSession(result.user, result.scope);
 
       onError("");
       onSuccess();
