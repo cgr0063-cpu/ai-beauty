@@ -80,17 +80,17 @@ export function resetPersonalData() {
 
 export async function activateSession(
   user: AuthUser,
-  scope: "local" | "remote",
-  debug?: (message: string) => void
+  scope: "local" | "remote"
+  
 ) {
-  debug?.("AS: start");
+  
   const previous = useAuthStore.getState().currentUser;
 
   if (!previous || previous.id !== user.id) {
     if (previous) await saveAccountSnapshot(previous.id).catch(() => {});
     resetPersonalData();
     await restoreAccountSnapshot(user.id).catch(() => false);
-    debug?.("AS: after snapshot");
+    
   }
 
   useAuthStore.getState().setSession(user, scope);
@@ -113,7 +113,7 @@ export async function activateSession(
       savedLookBody: i18n.t("notifications.savedLookBody"),
     },
   }).catch(() => false);
-  debug?.("AS: after notifications");
+  
 
   // Billing identity follows the authenticated app account. This must never
   // block authentication: getSubscriptionProvider() itself can throw
@@ -123,10 +123,10 @@ export async function activateSession(
   > = "free";
 
   try {
-    debug?.("AS: before RC identifyUser");
+    
     await getSubscriptionProvider().identifyUser(user.id).catch(() => {});
-    debug?.("AS: after RC identifyUser");
-    debug?.("AS: before RC entitlement");
+    
+    
     entitlement = await Promise.race([
   getSubscriptionProvider()
     .getEntitlementStatus()
@@ -135,13 +135,13 @@ export async function activateSession(
     setTimeout(() => resolve("free"), 6000)
   ),
 ]);
-    debug?.("AS: after RC entitlement");
+    
   } catch {
     entitlement = "free";
   }
 
   useEntitlementStore.getState().setStatus(entitlement);
-  debug?.("AS: complete");
+  
 }
 
 export async function clearSession(
