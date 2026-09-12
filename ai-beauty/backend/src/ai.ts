@@ -282,7 +282,7 @@ export async function regenerateLook(
   const parsed = generatedLookSchema.parse(result);
   return { ...parsed, id: parsed.id ?? `look_${Date.now()}_${direction}` };
 }
-}
+
 const FIT_CHECK_RESPONSE_SCHEMA = {
   type: "object",
   properties: {
