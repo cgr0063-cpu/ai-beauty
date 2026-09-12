@@ -81,6 +81,24 @@ export interface FitCheckResult {
   detectedItems: ClosetItemAnalysis[];
   source: "demo" | "remote";
 }
+export interface GarmentInput {
+  photoUri: string;
+  label?: string;
+}
+
+export interface TryOnRequest {
+  userPhotoUri: string;
+  garments: GarmentInput[];
+  quality?: "fast" | "high";
+  aspectRatio?: "1:1" | "3:4" | "9:16";
+}
+
+export interface TryOnResult {
+  imageBase64: string;
+  mimeType: string;
+  modelUsed: string;
+  warnings?: string[];
+}
 
 /**
  * Every AI capability the app needs goes through this interface.
@@ -92,6 +110,7 @@ export interface AIProvider {
   generateTodaysLook(input: LookRequestInput): Promise<GeneratedLook>;
   regenerateLook(input: LookRequestInput, direction: "bolder" | "softer" | "office" | "dateNight" | "another"): Promise<GeneratedLook>;
   analyzeFitCheck(input: FitCheckInput): Promise<FitCheckResult>;
+  generateTryOnPreview(request: TryOnRequest): Promise<TryOnResult>;
   analyzeClosetItem(photoUri: string, languageCode: string): Promise<ClosetItemAnalysis>;
   /** Premium Store Mode product-photo classification. Server enforces Plus. */
   analyzeStoreProduct(photoUri: string, languageCode: string): Promise<ClosetItemAnalysis>;
