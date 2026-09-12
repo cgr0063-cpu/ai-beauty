@@ -468,15 +468,13 @@ export async function generateTryOnImage(input: {
             parts,
           },
         ],
-        generationConfig: {
-          responseModalities: ["IMAGE"],
-          responseFormat: {
-            image: {
-              aspectRatio: input.aspectRatio ?? "3:4",
-              imageSize: input.quality === "high" ? "2K" : "1K",
-            },
-          },
-        },
+  generationConfig: {
+  responseModalities: ["IMAGE"],
+  imageConfig: {
+    aspectRatio: input.aspectRatio ?? "3:4",
+    imageSize: input.quality === "high" ? "2K" : "1K",
+  },
+},
       }),
     }
   );
