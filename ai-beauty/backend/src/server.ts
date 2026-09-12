@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import multer from "multer";
 import "dotenv/config";
-import { generateLook, regenerateLook, analyzeFitCheck, analyzeClosetItem, isAIConfigured } from "./ai.js";
+import { generateLook, regenerateLook, analyzeFitCheck, analyzeClosetItem, generateTryOnImage, isAIConfigured } from "./ai.js";
 import { authRouter, verifyToken } from "./auth.js";
 import { closeDb, getDb } from "./db.js";
 import { rateLimit, securityHeaders } from "./security.js";
@@ -265,7 +265,71 @@ app.post("/v1/fit-check/analyze", requireAuth, aiLimiter, upload.single("photo")
     res.status(502).json({ error: "ai_analysis_failed", requestId: res.locals.requestId });
   }
 });
+app.post(
+  "/v1/fit-check/try-on",
+  requireAuth,
+  aiLimiter,
+  upload.fields([
+    { name: "userPhoto", maxCount: 1 },
+    { name: "garments", maxCount: 6 },
+  ]),
+  async (req, res) => {
+    if (DISABLE_AI) {
+      return res.status(503).json({ error: "ai_temporarily_disabled" });
+    }
 
+    if (!isAIConfigured()) {
+      return res.status(503).json({ error: "ai_not_configured" });
+    }
+
+    try {
+      const files = req.files as {
+        [fieldname: string]: Express.Multer.File[];
+      };
+
+      const userPhoto = files?.userPhoto?.[0];
+      const garments = files?.garments ?? [];
+
+      if (!userPhoto) {
+        return res.status(400).json({ error: "missing_user_photo" });
+      }
+
+      if (!garments.length) {
+        return res.status(400).json({ error: "missing_garments" });
+      }
+
+      const result = await generateTryOnImage({
+        userPhoto: {
+          imageBase64: userPhoto.buffer.toString("base64"),
+          mediaType: userPhoto.mimetype,
+        },
+        garments: garments.map((garment) => ({
+          imageBase64: garment.buffer.toString("base64"),
+          mediaType: garment.mimetype,
+        })),
+        quality: req.body.quality === "high" ? "high" : "fast",
+        aspectRatio:
+          req.body.aspectRatio === "1:1" ||
+          req.body.aspectRatio === "9:16"
+            ? req.body.aspectRatio
+            : "3:4",
+      });
+
+      res.setHeader("Cache-Control", "no-store");
+      res.json(result);
+    } catch (error) {
+      logError("try_on_generation_failed", error, {
+        requestId: res.locals.requestId,
+        userId: res.locals.userId,
+      });
+
+      res.status(502).json({
+        error: "try_on_generation_failed",
+        requestId: res.locals.requestId,
+      });
+    }
+  },
+);
 // Optional weather passthrough — the mobile client calls Open-Meteo directly
 // (no key needed) by default, but this endpoint exists so you can swap in a
 // paid vendor without a client release, if ever needed.
