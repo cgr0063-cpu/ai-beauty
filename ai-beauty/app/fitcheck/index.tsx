@@ -10,7 +10,7 @@ import { useAppTheme } from "@/design-system/ThemeProvider";
 import { useTodayContextStore } from "@/state/todayContextStore";
 import { useWardrobeStore } from "@/state/wardrobeStore";
 import { getAIProvider } from "@/services/providers/ai";
-import { FitCheckResult, FitCheckOutcome } from "@/services/providers/ai/AIProvider";
+import { FitCheckResult, FitCheckOutcome, TryOnResult } from "@/services/providers/ai/AIProvider";
 import { useMediaFlowStore } from "@/state/mediaFlowStore";
 
 const OUTCOME_META: Record<FitCheckOutcome, { icon: (c: string) => React.ReactNode; tone: "success" | "warning" | "accent" }> = {
@@ -35,6 +35,9 @@ export default function FitCheckResultScreen() {
   const [loading, setLoading] = useState(true);
   const [analysisFailed, setAnalysisFailed] = useState(false);
   const [retryNonce, setRetryNonce] = useState(0);
+  const [tryOnLoading, setTryOnLoading] = useState(false);
+const [tryOnResult, setTryOnResult] = useState<TryOnResult | null>(null);
+const [tryOnError, setTryOnError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,7 +75,42 @@ export default function FitCheckResultScreen() {
     useMediaFlowStore.getState().setTailorAdvice(null);
     router.replace("/(tabs)/fitcheck-entry");
   };
+const generateTryOn = async () => {
+  if (!photoUri || tryOnLoading) return;
 
+  const garments = closetItems
+    .filter((item) => !!item.photoUri)
+    .slice(0, 6)
+    .map((item) => ({
+      photoUri: item.photoUri!,
+      label: item.label,
+    }));
+
+  if (!garments.length) {
+    setTryOnError("Gardırobunda fotoğraflı en az bir parça olmalı.");
+    return;
+  }
+
+  setTryOnLoading(true);
+  setTryOnError(null);
+  setTryOnResult(null);
+
+  try {
+    const provider = getAIProvider();
+    const generated = await provider.generateTryOnPreview({
+      userPhotoUri: photoUri,
+      garments,
+      quality: "fast",
+      aspectRatio: "3:4",
+    });
+
+    setTryOnResult(generated);
+  } catch {
+    setTryOnError("Görsel oluşturulamadı. Tekrar deneyebilirsin.");
+  } finally {
+    setTryOnLoading(false);
+  }
+};
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <ScreenHeader title={t("fitCheck.title")} />
@@ -194,12 +232,49 @@ export default function FitCheckResultScreen() {
               </View>
             )}
 
-            <View style={{ marginTop: 12 }}>
-              <ComingSoonNotice
-                title={t("fitCheck.showItOnMeTitle")}
-                description={t("fitCheck.showItOnMeDescription")}
-              />
-            </View>
+<View style={{ marginTop: 12 }}>
+  <Button
+    label={tryOnLoading ? "Hazırlanıyor..." : t("fitCheck.showItOnMeTitle")}
+    onPress={generateTryOn}
+    disabled={tryOnLoading}
+    fullWidth
+  />
+
+  {tryOnLoading && (
+    <ActivityIndicator
+      style={{ marginTop: 12 }}
+      color={theme.colors.primary}
+    />
+  )}
+
+  {tryOnError && (
+    <Text
+      style={{
+        color: theme.colors.textMuted,
+        fontSize: 13,
+        marginTop: 10,
+        textAlign: "center",
+      }}
+    >
+      {tryOnError}
+    </Text>
+  )}
+
+  {tryOnResult && (
+    <Image
+      source={{
+        uri: `data:${tryOnResult.mimeType};base64,${tryOnResult.imageBase64}`,
+      }}
+      style={{
+        width: "100%",
+        aspectRatio: 3 / 4,
+        borderRadius: 18,
+        marginTop: 12,
+      }}
+      resizeMode="cover"
+    />
+  )}
+</View>
           </>
         )}
       </ScrollView>
