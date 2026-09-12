@@ -243,7 +243,7 @@ const generateTryOn = async () => {
   {tryOnLoading && (
     <ActivityIndicator
       style={{ marginTop: 12 }}
-      color={theme.colors.primary}
+      color={theme.colors.accent}
     />
   )}
 
